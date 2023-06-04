@@ -1,0 +1,27 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+  - asciicheck
+  - unused
+  - depguard
+  - errorlint
+  - gofmt
+  - gosec
+  - goimports
+  - importas
+  - prealloc
+  - revive
+  - misspell
+  - stylecheck
+  - tparallel
+  - unconvert
+  - unparam
+  - whitespace
+
+issues:
+  exclude-rules:
+    - path: '(.+)_test\.go'
+      linters:
+        - errcheck
