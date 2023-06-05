@@ -7,12 +7,7 @@ import (
 	"os"
 
 	"github.com/mchmarny/reputer/pkg/reputer"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-)
-
-const (
-	name = "reputer"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -59,16 +54,10 @@ func main() {
 }
 
 func initLogging() {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	log.SetOutput(os.Stderr)
+	log.SetLevel(log.InfoLevel)
 
 	if debug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	} else {
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		log.SetLevel(log.DebugLevel)
 	}
-
-	log.Logger = zerolog.New(os.Stdout).With().
-		Str("name", name).
-		Str("version", version).
-		Logger()
 }

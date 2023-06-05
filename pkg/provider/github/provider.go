@@ -6,7 +6,7 @@ import (
 	api "github.com/google/go-github/v52/github"
 	"github.com/mchmarny/reputer/pkg/report"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -25,7 +25,6 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 	pageCounter := 1
 
 	for {
-
 		opts := &api.CommitsListOptions{
 			SHA: commit,
 			ListOptions: api.ListOptions{
@@ -39,19 +38,15 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 			return nil, errors.Wrapf(err, "error listing commits for %s/%s", owner, repo)
 		}
 
-		log.Debug().
-			Str("owner", owner).
-			Str("repo", repo).
-			Int("opt_page", opts.Page).
-			Int("opt_size", opts.PerPage).
-			Str("opt_token", opts.SHA).
-			Int("page_next", r.NextPage).
-			Int("page_last", r.LastPage).
-			Str("status", r.Status).
-			Int("status_code", r.StatusCode).
-			Int("rate_limit", r.Rate.Limit).
-			Int("rate_remaining", r.Rate.Remaining).
-			Msg("list commits response")
+		log.WithFields(log.Fields{
+			"page_num":       opts.Page,
+			"size_size":      opts.PerPage,
+			"page_next":      r.NextPage,
+			"page_last":      r.LastPage,
+			"status":         r.StatusCode,
+			"rate_limit":     r.Rate.Limit,
+			"rate_remaining": r.Rate.Remaining,
+		}).Debug("commit list")
 
 		// loop through commits
 		for _, c := range p {
