@@ -19,6 +19,8 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 		return nil, errors.New("owner and repo must be specified")
 	}
 
+	client := getClient()
+
 	list := make(map[string]*report.Author)
 	pageCounter := 1
 
@@ -32,7 +34,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 			},
 		}
 
-		p, r, err := getClient().Repositories.ListCommits(ctx, owner, repo, opts)
+		p, r, err := client.Repositories.ListCommits(ctx, owner, repo, opts)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error listing commits for %s/%s", owner, repo)
 		}
@@ -61,9 +63,6 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 			if _, ok := list[c.Author.GetLogin()]; !ok {
 				list[c.Author.GetLogin()] = &report.Author{
 					Login:   c.Author.GetLogin(),
-					Name:    c.Author.Name,
-					Email:   c.Author.Email,
-					Company: c.Author.Company,
 					Commits: make([]string, 0),
 				}
 			}
@@ -84,9 +83,39 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 	authors := make([]*report.Author, len(list))
 	i := 0
 	for _, a := range list {
+		if err := loadAuthor(ctx, client, a); err != nil {
+			return nil, errors.Wrap(err, "error loading author")
+		}
 		authors[i] = a
 		i++
 	}
 
 	return authors, nil
+}
+
+func loadAuthor(ctx context.Context, client *api.Client, author *report.Author) error {
+	if client == nil {
+		return errors.New("client must be specified")
+	}
+	if author == nil {
+		return errors.New("author must be specified")
+	}
+
+	u, _, err := client.Users.Get(ctx, author.Login)
+	if err != nil {
+		return errors.Wrapf(err, "error getting user %s", author.Login)
+	}
+
+	author.Name = u.Name
+	author.Email = u.Email
+	author.Company = u.Company
+	author.Repos = u.PublicRepos
+	author.Gists = u.PublicGists
+	author.Followers = u.Followers
+	author.Following = u.Following
+	author.Created = u.CreatedAt.Time
+	author.Suspended = u.SuspendedAt != nil
+	author.TwoFactorAuth = u.TwoFactorAuthentication
+
+	return nil
 }

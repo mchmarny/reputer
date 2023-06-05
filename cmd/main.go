@@ -7,6 +7,12 @@ import (
 	"os"
 
 	"github.com/mchmarny/reputer/pkg/reputer"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+)
+
+const (
+	name = "reputer"
 )
 
 var (
@@ -15,11 +21,13 @@ var (
 
 	repo   string
 	commit string
+	debug  bool
 )
 
 func init() {
 	flag.StringVar(&repo, "repo", "", "Repo URI (e.g. github.com/owner/repo)")
 	flag.StringVar(&commit, "commit", "", "Commit from which to start the report (optional, inclusive)")
+	flag.BoolVar(&debug, "debug", false, "Turns logging verbose (optional, false)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of %s (%s):\n", os.Args[0], version)
 		flag.PrintDefaults()
@@ -33,6 +41,7 @@ func usage() {
 
 func main() {
 	flag.Parse()
+	initLogging()
 
 	if repo == "" {
 		usage()
@@ -47,4 +56,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+}
+
+func initLogging() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	if debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	}
+
+	log.Logger = zerolog.New(os.Stdout).With().
+		Str("name", name).
+		Str("version", version).
+		Logger()
 }
