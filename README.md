@@ -33,31 +33,22 @@ results in:
 ```json
 [
   {
-    "login": "xtreme-vikram-yadav",
-    "created": "2013-07-22T15:54:52Z",
+    "login": "mchmarny",
+    "created": "2010-01-04T00:19:57Z",
+    "days": 4900,
     "commits": [
-      "c90fabf38796ec70286142c052b01570826d1a75"
+      "003582a11a45ff4c2c08185f76bcc256f8fa9acb",
+      ...
     ],
-    "name": "Vikram Yadav",
-    "repos": 14,
-    "gists": 0,
-    "followers": 1,
-    "following": 0
-  },
-  {
-    "login": "davidhadas",
-    "created": "2013-04-23T08:15:45Z",
-    "commits": [
-      "84fa64c75bd32662a623ecb9063797dfd5d624da"
-    ],
-    "name": "David Hadas",
-    "email": "david.hadas@gmail.com",
-    "company": "IBM Research",
-    "repos": 61,
-    "gists": 0,
-    "followers": 6,
-    "following": 0
-  },
+    "name": "Mark Chmarny",
+    "company": "@Google",
+    "repos": 148,
+    "gists": 4,
+    "followers": 230,
+    "following": 8,
+    "two_factor_auth": true,
+    "reputation": 2.36
+  }
   ...
 ]
 ```
