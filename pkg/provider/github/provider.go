@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"time"
 
 	api "github.com/google/go-github/v52/github"
 	"github.com/mchmarny/reputer/pkg/report"
@@ -109,8 +110,13 @@ func loadAuthor(ctx context.Context, client *api.Client, author *report.Author) 
 	author.Followers = u.Followers
 	author.Following = u.Following
 	author.Created = u.CreatedAt.Time
+	author.Days = int64(time.Now().UTC().Sub(author.Created).Hours() / 24)
 	author.Suspended = u.SuspendedAt != nil
 	author.TwoFactorAuth = u.TwoFactorAuthentication
+
+	if err := calculateReputation(author); err != nil {
+		return errors.Wrap(err, "error calculating reputation")
+	}
 
 	return nil
 }
