@@ -2,6 +2,8 @@
 
 Contributor reputation reporting tool
 
+> The algorithm currently used to score GitHub author reputation is for demonstration purposes only. 
+
 ## build
 
 ```shell
@@ -29,6 +31,8 @@ bin/reputer \
 ```
 
 results in: 
+
+> Note, the commits are only the commits in this repo since the `commit` (if provided)
 
 ```json
 [
