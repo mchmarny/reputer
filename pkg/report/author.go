@@ -17,7 +17,7 @@ type Author struct {
 	TwoFactorAuth bool                   `json:"two_factor_auth,omitempty"`
 	Reputation    float64                `json:"reputation,omitempty"`
 	Context       map[string]interface{} `json:"context,omitempty"`
-	Commits       []string               `json:"commits,omitempty"`
+	Commits       []*Commit              `json:"commits,omitempty"`
 }
 
 func (a *Author) String() string {

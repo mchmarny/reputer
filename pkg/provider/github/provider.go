@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	pageSize = 1000
+	pageSize = 100
 )
 
 // ListAuthors is a GitHub commit provider.
@@ -23,7 +23,6 @@ func ListAuthors(ctx context.Context, owner, repo, from, to string) ([]*report.A
 
 	list := make(map[string]*report.Author)
 	pageCounter := 1
-	reachedEnd := false
 
 	for {
 		opts := &api.CommitsListOptions{
@@ -59,22 +58,16 @@ func ListAuthors(ctx context.Context, owner, repo, from, to string) ([]*report.A
 			if _, ok := list[c.Author.GetLogin()]; !ok {
 				list[c.Author.GetLogin()] = &report.Author{
 					Username: c.Author.GetLogin(),
-					Commits:  make([]string, 0),
+					Commits:  make([]*report.Commit, 0),
 					Context:  make(map[string]interface{}),
 				}
 			}
 
 			// add commit to the list
-			list[c.Author.GetLogin()].Commits = append(list[c.Author.GetLogin()].Commits, c.GetSHA())
-
-			if *c.SHA == to {
-				reachedEnd = true
-				break
-			}
-		}
-
-		if reachedEnd {
-			break
+			list[c.Author.GetLogin()].Commits = append(list[c.Author.GetLogin()].Commits, &report.Commit{
+				SHA:      c.GetSHA(),
+				Verified: *c.GetCommit().GetVerification().Verified,
+			})
 		}
 
 		// check if we are done
@@ -107,10 +100,18 @@ func loadAuthor(ctx context.Context, client *api.Client, author *report.Author) 
 		return errors.New("author must be specified")
 	}
 
-	u, _, err := client.Users.Get(ctx, author.Username)
+	u, r, err := client.Users.Get(ctx, author.Username)
 	if err != nil {
 		return errors.Wrapf(err, "error getting user %s", author.Username)
 	}
+
+	log.WithFields(log.Fields{
+		"page_next":      r.NextPage,
+		"page_last":      r.LastPage,
+		"status":         r.StatusCode,
+		"rate_limit":     r.Rate.Limit,
+		"rate_remaining": r.Rate.Remaining,
+	}).Debug("user get")
 
 	// required fields
 	author.Created = u.CreatedAt.Time

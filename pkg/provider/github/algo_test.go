@@ -36,7 +36,7 @@ func TestCalculateReputation(t *testing.T) {
 		},
 		{
 			name:      "date only",
-			wantScore: 0.2,
+			wantScore: 0.1,
 			author: &report.Author{
 				Username: "date-only",
 				Created:  time.Now().AddDate(-3, 0, 0),
@@ -44,7 +44,7 @@ func TestCalculateReputation(t *testing.T) {
 		},
 		{
 			name:      "positive ratio",
-			wantScore: 0.2,
+			wantScore: 0.15,
 			author: &report.Author{
 				Username:  "positive-ratio",
 				Created:   time.Now().AddDate(0, -3, 0),
@@ -64,7 +64,7 @@ func TestCalculateReputation(t *testing.T) {
 		},
 		{
 			name:      "public repos",
-			wantScore: 0.1,
+			wantScore: 0.05,
 			author: &report.Author{
 				Username:     "public-repos",
 				Created:      time.Now().AddDate(0, -5, 0),
@@ -74,7 +74,7 @@ func TestCalculateReputation(t *testing.T) {
 		},
 		{
 			name:      "2FA",
-			wantScore: 0.3,
+			wantScore: 0.35,
 			author: &report.Author{
 				Username:      "two-factor",
 				Created:       time.Now().AddDate(0, -5, 0),
