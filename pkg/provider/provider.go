@@ -20,10 +20,10 @@ var (
 )
 
 // CommitProvider is a function that returns a list of authors for the given repo and commit.
-type CommitProvider func(ctx context.Context, owner, repo, commit string) ([]*report.Author, error)
+type CommitProvider func(ctx context.Context, owner, repo, from, to string) ([]*report.Author, error)
 
 // ListAuthors returns a list of authors for the given repo and commit.
-func ListAuthors(ctx context.Context, repo, commit string) ([]*report.Author, error) {
+func ListAuthors(ctx context.Context, repo, from, to string) ([]*report.Author, error) {
 	if repo == "" {
 		return nil, errors.New("repo must be specified")
 	}
@@ -42,7 +42,7 @@ func ListAuthors(ctx context.Context, repo, commit string) ([]*report.Author, er
 		return nil, errors.Errorf("unsupported git provider: %s", gitProvider)
 	}
 
-	list, err := p(ctx, owner, repoName, commit)
+	list, err := p(ctx, owner, repoName, from, to)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error listing authors for %s/%s", owner, repoName)
 	}

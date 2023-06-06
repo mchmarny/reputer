@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"time"
 
 	api "github.com/google/go-github/v52/github"
 	"github.com/mchmarny/reputer/pkg/report"
@@ -15,7 +14,7 @@ const (
 )
 
 // ListAuthors is a GitHub commit provider.
-func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Author, error) {
+func ListAuthors(ctx context.Context, owner, repo, from, to string) ([]*report.Author, error) {
 	if owner == "" || repo == "" {
 		return nil, errors.New("owner and repo must be specified")
 	}
@@ -24,10 +23,11 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 
 	list := make(map[string]*report.Author)
 	pageCounter := 1
+	reachedEnd := false
 
 	for {
 		opts := &api.CommitsListOptions{
-			SHA: commit,
+			SHA: from,
 			ListOptions: api.ListOptions{
 				Page:    pageCounter,
 				PerPage: pageSize,
@@ -58,13 +58,23 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 			// check if author already in the list
 			if _, ok := list[c.Author.GetLogin()]; !ok {
 				list[c.Author.GetLogin()] = &report.Author{
-					Login:   c.Author.GetLogin(),
-					Commits: make([]string, 0),
+					Username: c.Author.GetLogin(),
+					Commits:  make([]string, 0),
+					Context:  make(map[string]interface{}),
 				}
 			}
 
 			// add commit to the list
 			list[c.Author.GetLogin()].Commits = append(list[c.Author.GetLogin()].Commits, c.GetSHA())
+
+			if *c.SHA == to {
+				reachedEnd = true
+				break
+			}
+		}
+
+		if reachedEnd {
+			break
 		}
 
 		// check if we are done
@@ -97,22 +107,32 @@ func loadAuthor(ctx context.Context, client *api.Client, author *report.Author) 
 		return errors.New("author must be specified")
 	}
 
-	u, _, err := client.Users.Get(ctx, author.Login)
+	u, _, err := client.Users.Get(ctx, author.Username)
 	if err != nil {
-		return errors.Wrapf(err, "error getting user %s", author.Login)
+		return errors.Wrapf(err, "error getting user %s", author.Username)
 	}
 
-	author.Name = u.Name
-	author.Email = u.Email
-	author.Company = u.Company
-	author.Repos = u.PublicRepos
-	author.Gists = u.PublicGists
-	author.Followers = u.Followers
-	author.Following = u.Following
+	// required fields
 	author.Created = u.CreatedAt.Time
-	author.Days = int64(time.Now().UTC().Sub(author.Created).Hours() / 24)
 	author.Suspended = u.SuspendedAt != nil
-	author.TwoFactorAuth = u.TwoFactorAuthentication
+	author.PublicRepos = int64(u.GetPublicRepos())
+	author.PrivateRepos = u.GetTotalPrivateRepos()
+	author.Followers = int64(u.GetFollowers())
+	author.Following = int64(u.GetFollowing())
+	author.TwoFactorAuth = u.GetTwoFactorAuthentication()
+
+	// optional fields for context
+	if u.Name != nil {
+		author.Context["name"] = u.GetName()
+	}
+
+	if u.Email != nil {
+		author.Context["email"] = u.GetEmail()
+	}
+
+	if u.Company != nil {
+		author.Context["company"] = u.GetCompany()
+	}
 
 	if err := calculateReputation(author); err != nil {
 		return errors.Wrap(err, "error calculating reputation")
