@@ -10,9 +10,6 @@ import (
 )
 
 const (
-	algoName    = "github.com/mchmarny/reputer/simple"
-	algoVersion = "v1.0.0"
-
 	// weight should add up to 1
 	authWeight           = 0.35
 	commitVerifiedWeight = 0.25
@@ -72,7 +69,7 @@ func calculateReputation(author *report.Author) error {
 
 	// 2FA
 	// if author has 2FA enabled that means they have a verified email
-	if author.TwoFactorAuth {
+	if author.StrongAuth {
 		rep += authWeight
 		log.Debugf("[%s] 2FA: %.2f", author.Username, rep)
 	}
@@ -108,12 +105,8 @@ func calculateReputation(author *report.Author) error {
 		}
 	}
 
-	author.Reputation = report.Reputation{
-		Algorithm: algoName,
-		Version:   algoVersion,
-		Score:     toFixed(rep, 2),
-	}
-	log.Debugf("[%s] reputation %+v", author.Username, author.Reputation)
+	author.Reputation = toFixed(rep, 2)
+	log.Debugf("[%s] reputation %.2f", author.Username, author.Reputation)
 
 	return nil
 }

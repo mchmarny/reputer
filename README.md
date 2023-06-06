@@ -49,12 +49,8 @@ results in:
       "private_repos": 26,
       "followers": 231,
       "following": 8,
-      "two_factor_auth": true,
-      "reputation": {
-        "score": 0.7,
-        "algorithm": "github.com/mchmarny/reputer/simple",
-        "version": "v1.0.0"
-      },
+      "strong_auth": true,
+      "reputation": 0.7,
       "context": {
         "company": "@Google",
         "name": "Mark Chmarny"

@@ -76,9 +76,9 @@ func TestCalculateReputation(t *testing.T) {
 			name:      "2FA",
 			wantScore: 0.35,
 			author: &report.Author{
-				Username:      "two-factor",
-				Created:       time.Now().AddDate(0, -5, 0),
-				TwoFactorAuth: true,
+				Username:   "two-factor",
+				Created:    time.Now().AddDate(0, -5, 0),
+				StrongAuth: true,
 			},
 		},
 	}
@@ -91,7 +91,7 @@ func TestCalculateReputation(t *testing.T) {
 				t.Errorf("%s - unexpected error: %v", tt.name, err)
 			}
 
-			if tt.author != nil && tt.author.Reputation.Score != tt.wantScore {
+			if tt.author != nil && tt.author.Reputation != tt.wantScore {
 				t.Errorf("%s - wrong reputation: got = %v, want %v",
 					tt.author.Username, tt.author.Reputation, tt.wantScore)
 			}

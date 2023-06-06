@@ -126,7 +126,7 @@ func loadAuthor(ctx context.Context, client *api.Client, author *report.Author) 
 	author.PrivateRepos = u.GetTotalPrivateRepos()
 	author.Followers = int64(u.GetFollowers())
 	author.Following = int64(u.GetFollowing())
-	author.TwoFactorAuth = u.GetTwoFactorAuthentication()
+	author.StrongAuth = u.GetTwoFactorAuthentication()
 
 	// optional fields for context
 	if u.Name != nil {
