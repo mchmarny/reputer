@@ -60,20 +60,25 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 				continue
 			}
 
+			// committer and author could be different
+			// that only means that the commit was cherry-picked or re-based (or both)
+			log.WithFields(log.Fields{
+				"author":         c.GetAuthor().GetLogin(),
+				"author_date":    c.GetAuthor().GetCreatedAt(),
+				"committer":      c.GetCommitter().GetLogin(),
+				"committer_date": c.GetCommitter().GetCreatedAt(),
+			}).Debug("commit")
+
 			// check if author already in the list
-			if _, ok := list[c.Author.GetLogin()]; !ok {
-				list[c.Author.GetLogin()] = &report.Author{
-					Username: c.Author.GetLogin(),
-					Commits:  make([]*report.Commit, 0),
-					Context:  make(map[string]interface{}),
-				}
+			if _, ok := list[c.GetAuthor().GetLogin()]; !ok {
+				list[c.GetAuthor().GetLogin()] = report.MakeAuthor(c.GetAuthor().GetLogin())
 			}
 
 			// add commit to the list
-			list[c.Author.GetLogin()].Commits = append(list[c.Author.GetLogin()].Commits, &report.Commit{
-				SHA:      c.GetSHA(),
-				Verified: *c.GetCommit().GetVerification().Verified,
-			})
+			list[c.GetAuthor().GetLogin()].Commits++
+			if !*c.GetCommit().GetVerification().Verified {
+				list[c.GetAuthor().GetLogin()].UnverifiedCommits++
+			}
 		}
 
 		// check if we are done
@@ -98,17 +103,17 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 	return authors, nil
 }
 
-func loadAuthor(ctx context.Context, client *api.Client, author *report.Author) error {
+func loadAuthor(ctx context.Context, client *api.Client, a *report.Author) error {
 	if client == nil {
 		return errors.New("client must be specified")
 	}
-	if author == nil {
+	if a == nil {
 		return errors.New("author must be specified")
 	}
 
-	u, r, err := client.Users.Get(ctx, author.Username)
+	u, r, err := client.Users.Get(ctx, a.Username)
 	if err != nil {
-		return errors.Wrapf(err, "error getting user %s", author.Username)
+		return errors.Wrapf(err, "error getting user %s", a.Username)
 	}
 
 	log.WithFields(log.Fields{
@@ -117,31 +122,32 @@ func loadAuthor(ctx context.Context, client *api.Client, author *report.Author) 
 		"status":         r.StatusCode,
 		"rate_limit":     r.Rate.Limit,
 		"rate_remaining": r.Rate.Remaining,
-	}).Debug("user get")
+	}).Debug("user")
 
 	// required fields
-	author.Created = u.CreatedAt.Time
-	author.Suspended = u.SuspendedAt != nil
-	author.PublicRepos = int64(u.GetPublicRepos())
-	author.PrivateRepos = u.GetTotalPrivateRepos()
-	author.Followers = int64(u.GetFollowers())
-	author.Following = int64(u.GetFollowing())
-	author.StrongAuth = u.GetTwoFactorAuthentication()
+	a.Created = u.CreatedAt.Time
+	a.Suspended = u.SuspendedAt != nil
+	a.PublicRepos = int64(u.GetPublicRepos())
+	a.PrivateRepos = u.GetTotalPrivateRepos()
+	a.Followers = int64(u.GetFollowers())
+	a.Following = int64(u.GetFollowing())
+	a.StrongAuth = u.GetTwoFactorAuthentication()
+	a.CommitsVerified = a.UnverifiedCommits == 0
 
 	// optional fields for context
 	if u.Name != nil {
-		author.Context["name"] = u.GetName()
+		a.Context["name"] = u.GetName()
 	}
 
 	if u.Email != nil {
-		author.Context["email"] = u.GetEmail()
+		a.Context["email"] = u.GetEmail()
 	}
 
 	if u.Company != nil {
-		author.Context["company"] = u.GetCompany()
+		a.Context["company"] = u.GetCompany()
 	}
 
-	if err := calculateReputation(author); err != nil {
+	if err := calculateReputation(a); err != nil {
 		return errors.Wrap(err, "error calculating reputation")
 	}
 

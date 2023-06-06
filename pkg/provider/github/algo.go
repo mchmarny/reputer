@@ -17,7 +17,6 @@ const (
 	ageWeight            = 0.10
 	privateRepoWeight    = 0.05
 	publicRepoWeight     = 0.05
-	commitCountWeight    = 0.05
 
 	hoursInDay = 24
 
@@ -43,7 +42,7 @@ func calculateReputation(author *report.Author) error {
 
 	// suspended users have no reputation
 	if author.Suspended {
-		log.Debugf("[%s] score - suspended", author.Username)
+		log.Debugf("score [%s] - suspended", author.Username)
 		return nil
 	}
 
@@ -52,11 +51,11 @@ func calculateReputation(author *report.Author) error {
 	// repos
 	if author.PrivateRepos > privateRepoMin {
 		rep += privateRepoWeight
-		log.Debugf("[%s] private repos: %.2f (%d)", author.Username, rep, author.PrivateRepos)
+		log.Debugf("private repos [%s]: %.2f (%d)", author.Username, rep, author.PrivateRepos)
 	}
 	if author.PublicRepos > publicRepoMin {
 		rep += publicRepoWeight
-		log.Debugf("[%s] public repos: %.2f (%d)", author.Username, rep, author.PublicRepos)
+		log.Debugf("public repos [%s]: %.2f (%d)", author.Username, rep, author.PublicRepos)
 	}
 
 	// age
@@ -64,14 +63,14 @@ func calculateReputation(author *report.Author) error {
 	days := int(math.Ceil(time.Now().UTC().Sub(author.Created).Hours() / hoursInDay))
 	if days > ageDayMin {
 		rep += ageWeight
-		log.Debugf("[%s] account age: %.2f (%d days)", author.Username, rep, days)
+		log.Debugf("account age [%s]: %.2f (%d days)", author.Username, rep, days)
 	}
 
 	// 2FA
 	// if author has 2FA enabled that means they have a verified email
 	if author.StrongAuth {
 		rep += authWeight
-		log.Debugf("[%s] 2FA: %.2f", author.Username, rep)
+		log.Debugf("2fa [%s]: %.2f", author.Username, rep)
 	}
 
 	// follower ratio
@@ -82,31 +81,17 @@ func calculateReputation(author *report.Author) error {
 		if ratio > ratioMin {
 			rep += ratioWeight
 		}
-		log.Debugf("[%s] follow ratio: %.2f (%f ratio)", author.Username, rep, ratio)
+		log.Debugf("follow ratio [%s]: %.2f (%f ratio)", author.Username, rep, ratio)
 	}
 
-	// commit
-	// 1 commit is not enough (implicit by being in the list of authors)
-	// multiple commits indicate additional opportunities for review
-	if len(author.Commits) > commitMin {
-		rep += commitCountWeight
-		log.Debugf("[%s] commit: %.2f (%d commits)", author.Username, rep, len(author.Commits))
-
-		// verified commits
-		verifiedCommits := 0
-		for _, c := range author.Commits {
-			if c.Verified {
-				verifiedCommits++
-			}
-		}
-		if verifiedCommits == len(author.Commits) {
-			rep += commitVerifiedWeight
-			log.Debugf("[%s] all commits in this repo verified", author.Username)
-		}
+	// all commits verified
+	if author.CommitsVerified {
+		rep += commitVerifiedWeight
+		log.Debugf("commit [%s]: %.2f (%d commits)", author.Username, rep, author.Commits)
 	}
 
 	author.Reputation = toFixed(rep, 2)
-	log.Debugf("[%s] reputation %.2f", author.Username, author.Reputation)
+	log.Debugf("reputation [%s]: %.2f", author.Username, author.Reputation)
 
 	return nil
 }
