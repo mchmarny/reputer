@@ -1,8 +1,8 @@
 # reputer
 
-Contributor reputation reporting tool
+Reporting tool to calculate contributor reputation based on plugable algorithm for each provider. Currently supports github and gitlab providers.  
 
-> The algorithm currently used to score GitHub author reputation is for demonstration purposes only. 
+> Note: `reputation` is a value between 0 (no/low reputation) to 1.0 (high reputation). The algorithms used in this repo currently consider only the provider information about each contributor so the `reputation` is more a identity confidence score until additional/external data sources are introduced. 
 
 ## build
 
@@ -34,13 +34,12 @@ bin/reputer \
 
 results in: 
 
-> Note, the commits are only the commits in this repo since the `commit` (if provided)
-
 ```json
 {
   "repo": "github.com/mchmarny/reputer",
-  "at_commit": "23da8455b5e59f57576b7fd4d18b0ad7fc53596e",
-  "generated_on": "2023-06-06T14:36:47.157072Z",
+  "generated_on": "2023-06-06T22:34:35.273897Z",
+  "total_commits": 180,
+  "total_contributors": 10,
   "contributors": [
     {
       "username": "mchmarny",
@@ -49,19 +48,15 @@ results in:
       "private_repos": 26,
       "followers": 231,
       "following": 8,
+      "commits": 18,
+      "verified_commits": true,
       "strong_auth": true,
-      "reputation": 0.7,
+      "reputation": 0.95,
       "context": {
         "company": "@Google",
         "name": "Mark Chmarny"
-      },
-      "commits": [
-        {
-          "sha": "003582a11a45ff4c2c08185f76bcc256f8fa9acb",
-          "verified": true
-        },
         ...
-      ]
+      }
     },
     ...
   ]
