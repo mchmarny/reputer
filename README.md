@@ -13,13 +13,15 @@ make build
 ## usage 
 
 ```shell
-bin/reputer [flags]
-```
-
-options:
-
-* `repo` (string) - Repo URI (e.g. github.com/owner/repo)
-* `commit` (string) - Commit from which to start the report (optional, inclusive)
+Usage of bin/reputer (v0.0.1):
+  -repo string
+    	Repo URI (required, e.g. github.com/owner/repo)
+  -commit string
+    	Commit at which to end the report (optional, inclusive)
+  -file string
+    	Write output to file at this path (optional, stdout if not specified)
+  -debug
+    	Turns logging verbose (optional, false)
 ```
 
 example: 
