@@ -41,7 +41,7 @@ results in:
   "repo": "github.com/mchmarny/reputer",
   "at_commit": "23da8455b5e59f57576b7fd4d18b0ad7fc53596e",
   "generated_on": "2023-06-06T14:36:47.157072Z",
-  "authors": [
+  "contributors": [
     {
       "username": "mchmarny",
       "created": "2010-01-04T00:19:57Z",
@@ -50,7 +50,11 @@ results in:
       "followers": 231,
       "following": 8,
       "two_factor_auth": true,
-      "reputation": 1,
+      "reputation": {
+        "score": 0.7,
+        "algorithm": "github.com/mchmarny/reputer/simple",
+        "version": "v1.0.0"
+      },
       "context": {
         "company": "@Google",
         "name": "Mark Chmarny"
