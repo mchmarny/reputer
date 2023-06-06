@@ -26,7 +26,7 @@ example:
 
 ```shell
 bin/reputer \
-    --repo github.com/knative/serving \
+    --repo github.com/mchmarny/reputer \
     --commit 3c239456ef63b45322b7ccdceb7f835c01fba862
 ```
 
@@ -35,26 +35,35 @@ results in:
 > Note, the commits are only the commits in this repo since the `commit` (if provided)
 
 ```json
-[
-  {
-    "login": "mchmarny",
-    "created": "2010-01-04T00:19:57Z",
-    "days": 4900,
-    "commits": [
-      "003582a11a45ff4c2c08185f76bcc256f8fa9acb",
-      ...
-    ],
-    "name": "Mark Chmarny",
-    "company": "@Google",
-    "repos": 148,
-    "gists": 4,
-    "followers": 230,
-    "following": 8,
-    "two_factor_auth": true,
-    "reputation": 2.36
-  }
-  ...
-]
+{
+  "repo": "github.com/mchmarny/reputer",
+  "at_commit": "23da8455b5e59f57576b7fd4d18b0ad7fc53596e",
+  "generated_on": "2023-06-06T14:36:47.157072Z",
+  "authors": [
+    {
+      "username": "mchmarny",
+      "created": "2010-01-04T00:19:57Z",
+      "public_repos": 148,
+      "private_repos": 26,
+      "followers": 231,
+      "following": 8,
+      "two_factor_auth": true,
+      "reputation": 1,
+      "context": {
+        "company": "@Google",
+        "name": "Mark Chmarny"
+      },
+      "commits": [
+        {
+          "sha": "003582a11a45ff4c2c08185f76bcc256f8fa9acb",
+          "verified": true
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+}
 ```
 
 ## Disclaimer
