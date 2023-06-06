@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/mchmarny/reputer/pkg/provider"
-	"github.com/mchmarny/reputer/pkg/report"
 	"github.com/pkg/errors"
 )
 
@@ -44,16 +42,9 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error
 		return errors.Wrap(err, "invalid options")
 	}
 
-	list, err := provider.ListAuthors(ctx, opt.Repo, opt.Commit)
+	r, err := provider.GetAuthors(ctx, opt.Repo, opt.Commit)
 	if err != nil {
 		return errors.Wrapf(err, "error listing authors for %s", opt)
-	}
-
-	rep := &report.Report{
-		Repo:         opt.Repo,
-		AtCommit:     opt.Commit,
-		GeneratedOn:  time.Now().UTC(),
-		Contributors: list,
 	}
 
 	f := os.Stdout
@@ -65,7 +56,7 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error
 		defer f.Close()
 	}
 
-	if err := json.NewEncoder(f).Encode(rep); err != nil {
+	if err := json.NewEncoder(f).Encode(r); err != nil {
 		return errors.Wrapf(err, "error encoding authors for %s", opt)
 	}
 

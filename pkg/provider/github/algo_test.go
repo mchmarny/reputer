@@ -85,12 +85,7 @@ func TestCalculateReputation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := calculateReputation(tt.author)
-
-			if err != nil && tt.wantError == nil {
-				t.Errorf("%s - unexpected error: %v", tt.name, err)
-			}
-
+			calculateReputation(tt.author)
 			if tt.author != nil && tt.author.Reputation != tt.wantScore {
 				t.Errorf("%s - wrong reputation: got = %v, want %v",
 					tt.author.Username, tt.author.Reputation, tt.wantScore)

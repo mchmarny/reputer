@@ -2,6 +2,9 @@ package github
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"time"
 
 	api "github.com/google/go-github/v52/github"
 	"github.com/mchmarny/reputer/pkg/report"
@@ -14,7 +17,7 @@ const (
 )
 
 // ListAuthors is a GitHub commit provider.
-func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Author, error) {
+func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Report, error) {
 	if owner == "" || repo == "" {
 		return nil, errors.New("owner and repo must be specified")
 	}
@@ -29,6 +32,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 
 	list := make(map[string]*report.Author)
 	pageCounter := 1
+	var commitCounter int64
 
 	for {
 		opts := &api.CommitsListOptions{
@@ -60,15 +64,6 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 				continue
 			}
 
-			// committer and author could be different
-			// that only means that the commit was cherry-picked or re-based (or both)
-			log.WithFields(log.Fields{
-				"author":         c.GetAuthor().GetLogin(),
-				"author_date":    c.GetAuthor().GetCreatedAt(),
-				"committer":      c.GetCommitter().GetLogin(),
-				"committer_date": c.GetCommitter().GetCreatedAt(),
-			}).Debug("commit")
-
 			// check if author already in the list
 			if _, ok := list[c.GetAuthor().GetLogin()]; !ok {
 				list[c.GetAuthor().GetLogin()] = report.MakeAuthor(c.GetAuthor().GetLogin())
@@ -79,6 +74,8 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 			if !*c.GetCommit().GetVerification().Verified {
 				list[c.GetAuthor().GetLogin()].UnverifiedCommits++
 			}
+
+			commitCounter++
 		}
 
 		// check if we are done
@@ -90,30 +87,45 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Aut
 	}
 
 	// convert map to slice
-	authors := make([]*report.Author, len(list))
-	i := 0
+	authors := make([]*report.Author, 0)
+	var wg sync.WaitGroup
+
 	for _, a := range list {
-		if err := loadAuthor(ctx, client, a); err != nil {
-			return nil, errors.Wrap(err, "error loading author")
-		}
-		authors[i] = a
-		i++
+		wg.Add(1)
+		go func(a *report.Author) {
+			defer wg.Done()
+			loadAuthor(ctx, client, a)
+			authors = append(authors, a)
+		}(a)
 	}
 
-	return authors, nil
+	wg.Wait()
+
+	r := &report.Report{
+		Repo:              fmt.Sprintf("github.com/%s/%s", owner, repo),
+		AtCommit:          commit,
+		GeneratedOn:       time.Now().UTC(),
+		TotalCommits:      commitCounter,
+		TotalContributors: int64(len(authors)),
+		Contributors:      authors,
+	}
+
+	return r, nil
 }
 
-func loadAuthor(ctx context.Context, client *api.Client, a *report.Author) error {
+func loadAuthor(ctx context.Context, client *api.Client, a *report.Author) {
 	if client == nil {
-		return errors.New("client must be specified")
+		log.Error("client must be specified")
+		return
 	}
 	if a == nil {
-		return errors.New("author must be specified")
+		log.Error("author must be specified")
+		return
 	}
 
 	u, r, err := client.Users.Get(ctx, a.Username)
 	if err != nil {
-		return errors.Wrapf(err, "error getting user %s", a.Username)
+		log.Errorf("error getting user %s: %v", a.Username, err)
 	}
 
 	log.WithFields(log.Fields{
@@ -147,9 +159,5 @@ func loadAuthor(ctx context.Context, client *api.Client, a *report.Author) error
 		a.Context["company"] = u.GetCompany()
 	}
 
-	if err := calculateReputation(a); err != nil {
-		return errors.Wrap(err, "error calculating reputation")
-	}
-
-	return nil
+	calculateReputation(a)
 }

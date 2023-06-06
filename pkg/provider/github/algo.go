@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/mchmarny/reputer/pkg/report"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,15 +34,15 @@ const (
 // - 2FA
 // - follower ratio
 // - commit
-func calculateReputation(author *report.Author) error {
+func calculateReputation(author *report.Author) {
 	if author == nil {
-		return errors.New("author required")
+		return
 	}
 
 	// suspended users have no reputation
 	if author.Suspended {
 		log.Debugf("score [%s] - suspended", author.Username)
-		return nil
+		return
 	}
 
 	var rep float64
@@ -92,8 +91,6 @@ func calculateReputation(author *report.Author) error {
 
 	author.Reputation = toFixed(rep, 2)
 	log.Debugf("reputation [%s]: %.2f", author.Username, author.Reputation)
-
-	return nil
 }
 
 func round(num float64) int {
