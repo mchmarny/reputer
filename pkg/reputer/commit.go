@@ -13,10 +13,9 @@ import (
 )
 
 type ListCommitAuthorsOptions struct {
-	Repo       string
-	AtCommit   string
-	FromCommit string
-	File       string
+	Repo   string
+	Commit string
+	File   string
 }
 
 func (l *ListCommitAuthorsOptions) Validate() error {
@@ -32,7 +31,7 @@ func (l *ListCommitAuthorsOptions) Validate() error {
 }
 
 func (l *ListCommitAuthorsOptions) String() string {
-	return fmt.Sprintf("repo: %s, commit: %s, from: %+s", l.Repo, l.AtCommit, l.FromCommit)
+	return fmt.Sprintf("repo: %s, commit: %s", l.Repo, l.Commit)
 }
 
 // ListCommitAuthors returns a list of authors for the given repo and commit.
@@ -45,17 +44,16 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error
 		return errors.Wrap(err, "invalid options")
 	}
 
-	list, err := provider.ListAuthors(ctx, opt.Repo, opt.FromCommit, opt.AtCommit)
+	list, err := provider.ListAuthors(ctx, opt.Repo, opt.Commit)
 	if err != nil {
 		return errors.Wrapf(err, "error listing authors for %s", opt)
 	}
 
 	rep := &report.Report{
-		Repo:        opt.Repo,
-		AtCommit:    opt.AtCommit,
-		FromCommit:  opt.FromCommit,
-		GeneratedOn: time.Now().UTC(),
-		Authors:     list,
+		Repo:         opt.Repo,
+		AtCommit:     opt.Commit,
+		GeneratedOn:  time.Now().UTC(),
+		Contributors: list,
 	}
 
 	f := os.Stdout

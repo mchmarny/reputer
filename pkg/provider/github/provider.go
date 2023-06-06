@@ -14,10 +14,16 @@ const (
 )
 
 // ListAuthors is a GitHub commit provider.
-func ListAuthors(ctx context.Context, owner, repo, from, to string) ([]*report.Author, error) {
+func ListAuthors(ctx context.Context, owner, repo, commit string) ([]*report.Author, error) {
 	if owner == "" || repo == "" {
 		return nil, errors.New("owner and repo must be specified")
 	}
+
+	log.WithFields(log.Fields{
+		"owner":  owner,
+		"repo":   repo,
+		"commit": commit,
+	}).Debug("list authors")
 
 	client := getClient()
 
@@ -26,7 +32,7 @@ func ListAuthors(ctx context.Context, owner, repo, from, to string) ([]*report.A
 
 	for {
 		opts := &api.CommitsListOptions{
-			SHA: from,
+			SHA: commit,
 			ListOptions: api.ListOptions{
 				Page:    pageCounter,
 				PerPage: pageSize,

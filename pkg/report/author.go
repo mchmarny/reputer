@@ -15,7 +15,7 @@ type Author struct {
 	Followers     int64                  `json:"followers,omitempty"`
 	Following     int64                  `json:"following,omitempty"`
 	TwoFactorAuth bool                   `json:"two_factor_auth,omitempty"`
-	Reputation    float64                `json:"reputation,omitempty"`
+	Reputation    Reputation             `json:"reputation,omitempty"`
 	Context       map[string]interface{} `json:"context,omitempty"`
 	Commits       []*Commit              `json:"commits,omitempty"`
 }

@@ -91,7 +91,7 @@ func TestCalculateReputation(t *testing.T) {
 				t.Errorf("%s - unexpected error: %v", tt.name, err)
 			}
 
-			if tt.author != nil && tt.author.Reputation != tt.wantScore {
+			if tt.author != nil && tt.author.Reputation.Score != tt.wantScore {
 				t.Errorf("%s - wrong reputation: got = %v, want %v",
 					tt.author.Username, tt.author.Reputation, tt.wantScore)
 			}
