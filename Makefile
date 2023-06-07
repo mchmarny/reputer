@@ -42,6 +42,10 @@ build: tidy ## Builds CLI binary
 	-extldflags '-static'" -mod vendor \
 	-o bin/reputer cmd/main.go
 
+.PHONY: snapshot
+snapshot: test lint ## Runs test, lint before building snapshot distributables
+	GITLAB_TOKEN="" goreleaser release --snapshot --clean --timeout 10m0s
+
 .PHONY: vulncheck
 vulncheck: ## Checks for soource vulnerabilities
 	govulncheck -test ./...

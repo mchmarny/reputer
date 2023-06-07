@@ -16,7 +16,7 @@ sboms:
 builds:
 - binary: reputer
   mod_timestamp: '{{ .CommitTimestamp }}'
-  dir: cmd/main.go
+  dir: cmd/
   env:
   - CGO_ENABLED=0
   flags:
