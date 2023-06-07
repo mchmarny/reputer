@@ -36,7 +36,6 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       go_version: ${{ needs.config.outputs.go_version }}
-      image_name: ${{ needs.config.outputs.image_name }}
 
   sign:
     needs:

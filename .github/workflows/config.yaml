@@ -3,8 +3,6 @@ name: config
 on:
   workflow_call:
     outputs:
-      image_name:
-        value: ${{ jobs.config.outputs.image_name }}
       go_version:
         value: ${{ jobs.config.outputs.go_version }}
       cosign_version:
@@ -25,14 +23,13 @@ jobs:
 
     env:
       # Set the following variables to your desired values
-      IMG_NAME: reputer
       GO_VERSION: ^1.20.5
       COSIGN_VERSION: v2.0.1
       ERR_VULN_SEV: 'CRITICAL,HIGH,MEDIUM'
+      LINTER_VERSION: v3.5.0
       SYFT_VERSION: v0.14.2
 
     outputs:
-      image_name: ${{ steps.conf.outputs.digest }}
       go_version: ${{ steps.conf.outputs.go_version }}
       cosign_version: ${{ steps.conf.outputs.cosign_version }}
       err_on_vul_sev: ${{ steps.conf.outputs.err_on_vul_sev }}
@@ -47,7 +44,6 @@ jobs:
     - name: Export Config
       id: conf
       run: |
-        echo "image_name=${{ env.IMG_NAME }}" >> $GITHUB_OUTPUT
         echo "go_version=${{ env.GO_VERSION }}" >> $GITHUB_OUTPUT
         echo "cosign_version=${{ env.COSIGN_VERSION }}" >> $GITHUB_OUTPUT
         echo "err_on_vul_sev=${{ env.ERR_VULN_SEV }}" >> $GITHUB_OUTPUT

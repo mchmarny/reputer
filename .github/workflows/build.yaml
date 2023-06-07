@@ -3,10 +3,6 @@ name: build
 on:
   workflow_call:
     inputs:
-      image_name:
-        description: 'Image name (e.g. my-image)'
-        required: true
-        type: string
       go_version:
         description: 'Go version to use'
         required: true
@@ -69,7 +65,7 @@ jobs:
       id: image
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        KO_DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}
+        KO_DOCKER_REPO: ghcr.io/${{ github.repository }}
         GOFLAGS: "-ldflags=-X=main.version=${{ env.RELEASE_VERSION }}"
         COSIGN_EXPERIMENTAL: "true"
       run: |
