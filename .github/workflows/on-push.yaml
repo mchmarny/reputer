@@ -18,6 +18,8 @@ jobs:
     uses: ./.github/workflows/config.yaml
 
   test:
+    needs:
+    - config
     uses: ./.github/workflows/test.yaml
     permissions:
       contents: read
