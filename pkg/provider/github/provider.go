@@ -8,6 +8,7 @@ import (
 
 	hub "github.com/google/go-github/v52/github"
 	"github.com/mchmarny/reputer/pkg/report"
+	"github.com/mchmarny/reputer/pkg/scanner"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,8 +32,8 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	client := getClient()
 
 	list := make(map[string]*report.Author)
+	commits := make([]*scanner.Request, 0)
 	pageCounter := 1
-	var commitCounter int64
 
 	for {
 		opts := &hub.CommitsListOptions{
@@ -75,7 +76,10 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 				list[c.GetAuthor().GetLogin()].UnverifiedCommits++
 			}
 
-			commitCounter++
+			// add commit to the batch
+			commits = append(commits, &scanner.Request{
+				Commit: c.GetSHA(),
+			})
 		}
 
 		// check if we are done
@@ -84,6 +88,13 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 		}
 
 		pageCounter++
+	}
+
+	r := &report.Report{
+		Repo:         fmt.Sprintf("github.com/%s/%s", owner, repo),
+		AtCommit:     commit,
+		GeneratedOn:  time.Now().UTC(),
+		TotalCommits: int64(len(commits)),
 	}
 
 	// convert map to slice
@@ -99,16 +110,11 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 		}(a)
 	}
 
+	// wait for all to finish
 	wg.Wait()
 
-	r := &report.Report{
-		Repo:              fmt.Sprintf("github.com/%s/%s", owner, repo),
-		AtCommit:          commit,
-		GeneratedOn:       time.Now().UTC(),
-		TotalCommits:      commitCounter,
-		TotalContributors: int64(len(authors)),
-		Contributors:      authors,
-	}
+	r.TotalContributors = int64(len(authors))
+	r.Contributors = authors
 
 	return r, nil
 }

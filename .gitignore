@@ -4,6 +4,7 @@
 # Test binaries
 *.test
 tmp
+test.json
 
 # Coverage
 *.out
@@ -22,4 +23,3 @@ cosign.*
 
 # ko 
 /.digest
-

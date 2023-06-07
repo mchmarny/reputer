@@ -8,6 +8,7 @@ import (
 	"github.com/mchmarny/reputer/pkg/report"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
@@ -86,10 +87,10 @@ func TestCalculateReputation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			calculateReputation(tt.author)
-			if tt.author != nil && tt.author.Reputation != tt.wantScore {
-				t.Errorf("%s - wrong reputation: got = %v, want %v",
-					tt.author.Username, tt.author.Reputation, tt.wantScore)
-			}
+			assert.NotNil(t, tt.author)
+			assert.Equalf(t, tt.wantScore, tt.author.Reputation,
+				"%s - wrong reputation: got = %v, want %v",
+				tt.author.Username, tt.author.Reputation, tt.wantScore)
 		})
 	}
 }
