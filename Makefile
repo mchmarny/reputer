@@ -1,4 +1,5 @@
-VERSION  :=$(shell cat .version)
+VERSION    :=$(shell cat .version)
+YAML_FILES :=$(shell find . ! -path "./vendor/*" -type f -regex ".*\.yaml" -print)
 
 all: help
 
@@ -21,10 +22,17 @@ upgrade: ## Upgrades all dependancies
 test: tidy ## Runs unit tests
 	go test -count=1 -race -covermode=atomic -coverprofile=cover.out ./...
 
+.PHONY: lint
+lint: lint-go lint-yaml ## Lints both Go and YAML files
+	@echo "Completed Go and YAML lints"
 
 .PHONY: lint
-lint: ## Lints the entire project using go 
+lint-go: ## Lints the entire project using Go
 	golangci-lint -c .golangci.yaml run
+
+.PHONY: lint-yaml
+lint-yaml: ## Runs yamllint on all yaml files (brew install yamllint)
+	yamllint -c .yamllint $(YAML_FILES)
 
 .PHONY: build
 build: tidy ## Builds CLI binary

@@ -1,0 +1,50 @@
+name: config
+
+on:
+  workflow_call:
+    outputs:
+      image_name:
+        value: ${{ jobs.config.outputs.image_name }}
+      go_version:
+        value: ${{ jobs.config.outputs.go_version }}
+      cosign_version:
+        value: ${{ jobs.config.outputs.cosign_version }}
+      err_on_vul_sev:
+        value: ${{ jobs.config.outputs.err_on_vul_sev }}
+      linter_version:
+        value: ${{ jobs.config.outputs.linter_version }}
+
+permissions:
+  contents: read
+
+jobs:
+
+  config:
+
+    env:
+      # Set the following variables to your desired values
+      IMG_NAME: reputer
+      GO_VERSION: '1.20.5'
+      COSIGN_VERSION: v2.0.1
+      ERR_VULN_SEV: 'CRITICAL,HIGH,MEDIUM'
+
+    outputs:
+      image_name: ${{ steps.conf.outputs.digest }}
+      go_version: ${{ steps.conf.outputs.go_version }}
+      cosign_version: ${{ steps.conf.outputs.cosign_version }}
+      err_on_vul_sev: ${{ steps.conf.outputs.err_on_vul_sev }}
+      linter_version: ${{ steps.conf.outputs.linter_version }}
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+
+    - name: Export Config
+      id: conf
+      run: |
+        echo "image_name=${{ env.IMG_NAME }}" >> $GITHUB_OUTPUT
+        echo "go_version=${{ env.GO_VERSION }}" >> $GITHUB_OUTPUT
+        echo "cosign_version=${{ env.COSIGN_VERSION }}" >> $GITHUB_OUTPUT
+        echo "err_on_vul_sev=${{ env.ERR_VULN_SEV }}" >> $GITHUB_OUTPUT
+        echo "linter_version=${{ env.LINTER_VERSION }}" >> $GITHUB_OUTPUT

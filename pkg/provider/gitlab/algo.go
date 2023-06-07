@@ -3,7 +3,7 @@ package gitlab
 import (
 	"math"
 
-	api "github.com/xanzy/go-gitlab"
+	lab "github.com/xanzy/go-gitlab"
 )
 
 const (
@@ -11,7 +11,7 @@ const (
 	deletionWeight = 0.1
 )
 
-func calculateReputation(s *api.CommitStats) float64 {
+func calculateReputation(s *lab.CommitStats) float64 {
 	if s == nil {
 		return 0
 	}

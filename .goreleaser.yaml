@@ -1,0 +1,89 @@
+project_name: reputer
+
+env:
+- GO111MODULE=on
+
+before:
+  hooks:
+  - go mod tidy
+
+gomod:
+  proxy: false
+
+sboms:
+- artifacts: binary
+
+builds:
+- binary: reputer
+  mod_timestamp: '{{ .CommitTimestamp }}'
+  dir: .
+  env:
+  - CGO_ENABLED=0
+  flags:
+  - -trimpath
+  ldflags:
+  - -s -w -X main.version={{.Version}}
+  goos:
+  - linux
+  - darwin
+  - windows
+  goarch:
+  - amd64
+  - arm64
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+release:
+  github:
+    owner: mchmarny
+    name: reputer
+  prerelease: auto
+
+archives:
+- format: binary
+  name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  format_overrides:
+  - goos: windows
+    format: zip
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - "^docs:"
+    - "^test:"
+    - readme
+    - typo
+    - "version bump"
+
+brews:
+- tap:
+    owner: mchmarny
+    name: homebrew-reputer
+    token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+  homepage: "https://github.com/mchmarny/reputer"
+  description: "Vulnerability Import CLI"
+  folder: Formula
+  license: "Apache-2.0"
+  test: |
+    system "#{bin}/reputer" --version
+
+nfpms:
+- file_name_template: "reputer-{{.Version}}_{{.Os}}-{{.Arch}}"
+  homepage: https://github.com/mchmarny/reputer/
+  description: "Vulnerability Import CLI"
+  maintainer: reputer developers <reputer@thingz.io>
+  license: Apache 2.0
+  vendor: reputer developers
+  formats:
+  - deb
+  - rpm
+  bindir: /usr/bin
+
+universal_binaries:
+- replace: true
+  name_template: 'reputer'

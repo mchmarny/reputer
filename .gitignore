@@ -14,7 +14,6 @@ dist
 
 # Data
 /data
-tool/db/dump
 
 # Keys 
 cosign.*
@@ -24,12 +23,3 @@ cosign.*
 # ko 
 /.digest
 
-# Terraform
-*.tfstate
-*.tfvars
-*.hcl
-.terraform
-*.backup
-
-# Secrets
-secret-prod.yaml

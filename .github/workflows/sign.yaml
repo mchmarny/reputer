@@ -1,0 +1,59 @@
+name: sign
+
+on:
+  workflow_call:
+    inputs:
+      image_digest:
+        description: 'Fully-qualified image digest to verify (registry/image@sha256:digest)'
+        required: true
+        type: string
+      cosign_version:
+        description: 'The version of cosign to use'
+        required: false
+        type: string
+        default: 'v2.0.1'
+
+permissions:
+  contents: read
+
+jobs:
+
+  sign:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      packages: write
+    steps:
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@dd6b2e2b610a11fd73dd187a43d57cc1394e35f9  # v3.0.5
+      with:
+        cosign-release: ${{ inputs.cosign_version }}
+
+    - name: Check Cosign
+      run: |
+        cosign version
+
+    - name: Auth Cosign
+      run: |
+        cosign login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate Keys
+      run: |
+        COSIGN_PASSWORD=$(openssl rand -base64 12)
+        cosign generate-key-pair
+
+    - name: Sign Image
+      env:
+        COSIGN_YES: true
+      run: |
+        cosign sign ${{ inputs.image_digest }} \
+            --key cosign.key \
+            -a sha=${{ github.sha }} \
+            -a run_id=${{ github.run_id }} \
+            -a run_attempt=${{ github.run_attempt }} \
+            -a tag=${{ env.GITHUB_REF_NAME }}
+
+    - name: Verify Signature
+      run: |
+        cosign verify --key cosign.pub ${{ inputs.image_digest }}

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	api "github.com/google/go-github/v52/github"
+	hub "github.com/google/go-github/v52/github"
 	"github.com/mchmarny/reputer/pkg/report"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -35,9 +35,9 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	var commitCounter int64
 
 	for {
-		opts := &api.CommitsListOptions{
+		opts := &hub.CommitsListOptions{
 			SHA: commit,
-			ListOptions: api.ListOptions{
+			ListOptions: hub.ListOptions{
 				Page:    pageCounter,
 				PerPage: pageSize,
 			},
@@ -113,7 +113,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	return r, nil
 }
 
-func loadAuthor(ctx context.Context, client *api.Client, a *report.Author) {
+func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author) {
 	if client == nil {
 		log.Error("client must be specified")
 		return

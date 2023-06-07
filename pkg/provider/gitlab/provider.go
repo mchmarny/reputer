@@ -9,13 +9,11 @@ import (
 	"github.com/mchmarny/reputer/pkg/report"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	api "github.com/xanzy/go-gitlab"
+	lab "github.com/xanzy/go-gitlab"
 )
 
 const (
 	pageSize = 100
-
-	tokenEnvVar = "GITLAB_TOKEN"
 )
 
 // ListAuthors is a GitHub commit provider.
@@ -30,7 +28,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 		"commit": commit,
 	}).Debug("list authors")
 
-	client, err := api.NewClient(os.Getenv(tokenEnvVar))
+	client, err := lab.NewClient(os.Getenv("GITLAB_TOKEN"))
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating client")
 	}
@@ -41,16 +39,16 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	repoNS := fmt.Sprintf("%s/%s", owner, repo)
 
 	for {
-		opts := &api.ListCommitsOptions{
-			All:       api.Bool(true),
-			WithStats: api.Bool(true),
-			ListOptions: api.ListOptions{
+		opts := &lab.ListCommitsOptions{
+			All:       lab.Bool(true),
+			WithStats: lab.Bool(true),
+			ListOptions: lab.ListOptions{
 				Page:    pageCounter,
 				PerPage: pageSize,
 			},
 		}
 
-		p, r, err := client.Commits.ListCommits(repoNS, opts, api.WithContext(ctx))
+		p, r, err := client.Commits.ListCommits(repoNS, opts, lab.WithContext(ctx))
 		if err != nil {
 			return nil, errors.Wrapf(err, "error listing commits for %s/%s", owner, repo)
 		}

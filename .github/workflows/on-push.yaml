@@ -1,0 +1,28 @@
+name: test
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+
+  config:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/config.yaml
+
+  test:
+    uses: ./.github/workflows/test.yaml
+    permissions:
+      contents: read
+      security-events: write
+    with:
+      go_version: ${{ needs.config.outputs.go_version }}
+      scan_severity: ${{ needs.config.outputs.err_on_vul_sev }}
+      linter_version: ${{ needs.config.outputs.linter_version }}
