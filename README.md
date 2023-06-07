@@ -1,19 +1,20 @@
 # reputer
 
-Reporting tool to calculate contributor reputation based on plugable algorithm for each provider. Currently supports github and gitlab providers.  
+Reporting tool to calculate contributor reputation based on configurable algorithm for each provider. Currently supports github and gitlab providers.  
 
 > Note: `reputation` is a value between 0 (no/low reputation) to 1.0 (high reputation). The algorithms used in this repo currently consider only the provider information about each contributor so the `reputation` is more a identity confidence score until additional/external data sources are introduced. 
 
-## build
+## install 
 
 ```shell
-make build
+brew tap mchmarny/reputer
+brew install mchmarny/reputer/reputer
 ```
 
 ## usage 
 
 ```shell
-Usage of bin/reputer (v0.0.1):
+Usage of reputer (v0.0.8):
   -repo string
     	Repo URI (required, e.g. github.com/owner/repo)
   -commit string
@@ -27,7 +28,7 @@ Usage of bin/reputer (v0.0.1):
 example: 
 
 ```shell
-bin/reputer \
+reputer \
     --repo github.com/mchmarny/reputer \
     --commit 3c239456ef63b45322b7ccdceb7f835c01fba862
 ```
@@ -63,6 +64,6 @@ results in:
 }
 ```
 
-## Disclaimer
+## disclaimer
 
 This is my personal project and it does not represent my employer. While I do my best to ensure that everything works, I take no responsibility for issues caused by this code.
