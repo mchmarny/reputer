@@ -9,46 +9,29 @@ permissions:
 
 jobs:
 
-  conf:
-    env:
-      GO_VERSION: ^1.20.5
-      SYFT_VERSION: v0.14.1
-      LINTER_VERSION: v1.52.2
-      ERR_VULNERABILITY_SEV: "CRITICAL,HIGH,MEDIUM"
-
-    runs-on: ubuntu-latest
+  config:
     permissions:
       contents: read
-    outputs:
-      go_version: ${{ steps.conf.outputs.go_version }}
-      syft_version: ${{ steps.conf.outputs.syft_version }}
-      err_on_vulnerability_sev: ${{ steps.conf.outputs.err_on_vulnerability_sev }}
-      linter_version: ${{ steps.conf.outputs.linter_version }}
-    steps:
-
-    - name: Export Config
-      id: conf
-      run: |
-        echo "go_version=${{ env.GO_VERSION }}" >> $GITHUB_OUTPUT
-        echo "syft_version=${{ env.SYFT_VERSION }}" >> $GITHUB_OUTPUT
-        echo "err_on_vulnerability_sev=${{ env.ERR_VULNERABILITY_SEV }}" >> $GITHUB_OUTPUT
-        echo "linter_version=${{ env.LINTER_VERSION }}" >> $GITHUB_OUTPUT
+    uses: ./.github/workflows/config.yaml
 
   test:
+    needs:
+    - config
     uses: ./.github/workflows/test.yaml
     permissions:
       contents: read
       security-events: write
     with:
-      go-version: ${{ needs.conf.outputs.go_version }}
-      scan-severity: ${{ needs.conf.outputs.err_on_vulnerability_sev }}
-      golangci_version: ${{ needs.conf.outputs.linter_version }}
+      go_version: ${{ needs.config.outputs.go_version }}
+      scan_severity: ${{ needs.config.outputs.err_on_vul_sev }}
+      linter_version: ${{ needs.config.outputs.linter_version }}
 
   release:
     outputs:
       hashes: ${{ steps.checksum.outputs.hashes }}
     runs-on: ubuntu-latest
     needs:
+    - config
     - test
     permissions:
       contents: write
@@ -56,7 +39,7 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753  # v4.0.1
       with:
-        go-version: ${{ needs.conf.outputs.go_version }}
+        go-version: ${{ needs.config.outputs.go_version }}
     - run: go version
     - name: Cache Go Modules
       uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8  # v3.3.1
@@ -74,7 +57,7 @@ jobs:
     - name: Install Syft
       uses: anchore/sbom-action/download-syft@4d571ad1038a9cc29d676154ef265ab8f9027042  # v0.14.2
       with:
-        version: ${{ needs.conf.outputs.syft_version }}
+        version: ${{ needs.config.outputs.syft_version }}
     - name: Build CLI
       uses: goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b  # v4.2.0
       id: releaser
@@ -123,7 +106,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          gh -R "$GITHUB_REPOSITORY" release download "$GITHUB_REF_NAME" -p "vimp*"
+          gh -R "$GITHUB_REPOSITORY" release download "$GITHUB_REF_NAME" -p "reputer*"
           gh -R "$GITHUB_REPOSITORY" release download "$GITHUB_REF_NAME" -p "$ATT_FILE_NAME"
       - name: Verify Assets
         env:

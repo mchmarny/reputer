@@ -16,31 +16,31 @@ jobs:
 
   test:
     needs:
-    - conf
+    - config
+    uses: ./.github/workflows/test.yaml
     permissions:
       contents: read
       security-events: write
-      id-token: write
-    uses: ./.github/workflows/test.yaml
     with:
-      go_version: ${{ needs.conf.outputs.go_version }}
-      scan_severity: ${{ needs.conf.outputs.err_on_vulnerability_sev }}
+      go_version: ${{ needs.config.outputs.go_version }}
+      scan_severity: ${{ needs.config.outputs.err_on_vul_sev }}
+      linter_version: ${{ needs.config.outputs.linter_version }}
 
   build:
     needs:
-    - conf
+    - config
     - test
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build.yaml
     with:
-      go_version: ${{ needs.conf.outputs.go_version }}
-      image_name: ${{ needs.conf.outputs.image_name }}
+      go_version: ${{ needs.config.outputs.go_version }}
+      image_name: ${{ needs.config.outputs.image_name }}
 
   sign:
     needs:
-    - conf
+    - config
     - build
     permissions:
       contents: read
@@ -48,12 +48,12 @@ jobs:
       packages: write
     uses: ./.github/workflows/sign.yaml
     with:
-      cosign_version: ${{ needs.conf.outputs.cosign_version }}
+      cosign_version: ${{ needs.config.outputs.cosign_version }}
       image_digest: ${{ needs.build.outputs.digest }}
 
   scan:
     needs:
-    - conf
+    - config
     - build
     permissions:
       contents: read
@@ -61,11 +61,10 @@ jobs:
     uses: ./.github/workflows/scan.yaml
     with:
       image_digest: ${{ needs.build.outputs.digest }}
-      scan_severity: ${{ needs.conf.outputs.err_on_vulnerability_sev }}
+      scan_severity: ${{ needs.config.outputs.err_on_vul_sev }}
 
   slsa:
     needs:
-    - conf
     - build
     permissions:
       contents: read

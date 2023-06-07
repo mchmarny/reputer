@@ -13,6 +13,8 @@ on:
         value: ${{ jobs.config.outputs.err_on_vul_sev }}
       linter_version:
         value: ${{ jobs.config.outputs.linter_version }}
+      syft_version:
+        value: ${{ jobs.config.outputs.syft_version }}
 
 permissions:
   contents: read
@@ -24,9 +26,10 @@ jobs:
     env:
       # Set the following variables to your desired values
       IMG_NAME: reputer
-      GO_VERSION: '1.20.5'
+      GO_VERSION: ^1.20.5
       COSIGN_VERSION: v2.0.1
       ERR_VULN_SEV: 'CRITICAL,HIGH,MEDIUM'
+      SYFT_VERSION: v0.14.2
 
     outputs:
       image_name: ${{ steps.conf.outputs.digest }}
@@ -34,6 +37,7 @@ jobs:
       cosign_version: ${{ steps.conf.outputs.cosign_version }}
       err_on_vul_sev: ${{ steps.conf.outputs.err_on_vul_sev }}
       linter_version: ${{ steps.conf.outputs.linter_version }}
+      syft_version: ${{ steps.conf.outputs.syft_version }}
 
     runs-on: ubuntu-latest
     permissions:
@@ -48,3 +52,4 @@ jobs:
         echo "cosign_version=${{ env.COSIGN_VERSION }}" >> $GITHUB_OUTPUT
         echo "err_on_vul_sev=${{ env.ERR_VULN_SEV }}" >> $GITHUB_OUTPUT
         echo "linter_version=${{ env.LINTER_VERSION }}" >> $GITHUB_OUTPUT
+        echo "syft_version=${{ env.SYFT_VERSION }}" >> $GITHUB_OUTPUT

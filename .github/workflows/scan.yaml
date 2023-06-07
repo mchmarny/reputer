@@ -9,9 +9,8 @@ on:
         type: string
       scan_severity:
         description: 'Error on vulnerability scan severity'
-        required: false
+        required: true
         type: string
-        default: 'CRITICAL,HIGH,MEDIUM'
 
 permissions:
   contents: read
