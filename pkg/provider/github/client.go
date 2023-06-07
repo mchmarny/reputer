@@ -9,11 +9,15 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	tokenEnvVar = "GITHUB_TOKEN"
+)
+
 // getClient returns a GitHub client.
 func getClient() *api.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{
-			AccessToken: os.Getenv("GITHUB_TOKEN"),
+			AccessToken: os.Getenv(tokenEnvVar),
 		},
 	)
 	tc := &http.Client{

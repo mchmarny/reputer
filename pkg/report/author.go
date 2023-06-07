@@ -16,7 +16,7 @@ func MakeAuthor(username string) *Author {
 // Author represents a commit author.
 type Author struct {
 	Username          string                 `json:"username"`
-	Created           time.Time              `json:"created"`
+	Created           time.Time              `json:"created,omitempty"`
 	Suspended         bool                   `json:"suspended,omitempty"`
 	PublicRepos       int64                  `json:"public_repos,omitempty"`
 	PrivateRepos      int64                  `json:"private_repos,omitempty"`
@@ -24,8 +24,8 @@ type Author struct {
 	Following         int64                  `json:"following,omitempty"`
 	Commits           int64                  `json:"commits"`
 	UnverifiedCommits int64                  `json:"-"`
-	CommitsVerified   bool                   `json:"verified_commits"`
-	StrongAuth        bool                   `json:"strong_auth"`
+	CommitsVerified   bool                   `json:"verified_commits,omitempty"`
+	StrongAuth        bool                   `json:"strong_auth,omitempty"`
 	Reputation        float64                `json:"reputation"`
 	Context           map[string]interface{} `json:"context,omitempty"`
 }

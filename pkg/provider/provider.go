@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mchmarny/reputer/pkg/provider/github"
+	"github.com/mchmarny/reputer/pkg/provider/gitlab"
 	"github.com/mchmarny/reputer/pkg/report"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -18,6 +19,7 @@ const (
 var (
 	providers = map[string]CommitProvider{
 		"github.com": github.ListAuthors,
+		"gitlab.com": gitlab.ListAuthors,
 	}
 )
 

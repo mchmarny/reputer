@@ -63,7 +63,6 @@ func initLogging() {
 		FullTimestamp:          false,
 		ForceColors:            true,
 		DisableTimestamp:       true,
-		DisableSorting:         true,
 		PadLevelText:           false,
 		DisableLevelTruncation: true,
 	})
