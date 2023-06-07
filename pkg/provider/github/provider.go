@@ -8,7 +8,6 @@ import (
 
 	hub "github.com/google/go-github/v52/github"
 	"github.com/mchmarny/reputer/pkg/report"
-	"github.com/mchmarny/reputer/pkg/scanner"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,8 +31,8 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	client := getClient()
 
 	list := make(map[string]*report.Author)
-	commits := make([]*scanner.Request, 0)
 	pageCounter := 1
+	commitCounter := int64(0)
 
 	for {
 		opts := &hub.CommitsListOptions{
@@ -76,10 +75,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 				list[c.GetAuthor().GetLogin()].UnverifiedCommits++
 			}
 
-			// add commit to the batch
-			commits = append(commits, &scanner.Request{
-				Commit: c.GetSHA(),
-			})
+			commitCounter++
 		}
 
 		// check if we are done
@@ -94,7 +90,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 		Repo:         fmt.Sprintf("github.com/%s/%s", owner, repo),
 		AtCommit:     commit,
 		GeneratedOn:  time.Now().UTC(),
-		TotalCommits: int64(len(commits)),
+		TotalCommits: commitCounter,
 	}
 
 	// convert map to slice
@@ -119,6 +115,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	return r, nil
 }
 
+// loadAuthor loads the author details.
 func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author) {
 	if client == nil {
 		log.Error("client must be specified")
