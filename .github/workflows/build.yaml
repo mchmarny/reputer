@@ -74,7 +74,7 @@ jobs:
         COSIGN_EXPERIMENTAL: "true"
       run: |
         set -euo pipefail
-        ko build internal/cmd/main.go \
+        ko build cmd/main.go \
           --image-refs .digest \
           --bare \
           --tags ${{ env.RELEASE_VERSION }} \

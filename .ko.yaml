@@ -1,1 +1,1 @@
-defaultBaseImage: cgr.dev/chainguard/static:latest
+defaultBaseImage: cgr.dev/chainguard/bash:latest
