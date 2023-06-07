@@ -24,7 +24,7 @@ jobs:
       security-events: write
     steps:
     - name: Setup Go
-      uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9  # v4.0.0
+      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753  # v4.0.1
       with:
         go-version: ${{ inputs.go_version }}
     - run: go version
@@ -48,7 +48,7 @@ jobs:
       run: |
         make test
     - name: Parse Coverage
-      uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2  # v3.1.3
+      uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d  # v3.1.4
       with:
         flags: unittests  # optional
 
@@ -58,7 +58,7 @@ jobs:
       security-events: write
     steps:
     - name: Setup Go
-      uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9  # v4.0.0
+      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753  # v4.0.1
       with:
         go-version: ${{ inputs.go-version }}
     - run: go version
@@ -83,7 +83,7 @@ jobs:
         files: .golangci.yaml
     - name: Lint Go
       if: steps.golangci_config.outputs.files_exists == 'true'
-      uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5  # v3.4.0
+      uses: golangci/golangci-lint-action@5f1fec7010f6ae3b84ea4f7b2129beb8639b564f  # v3.5.0
       with:
         version: ${{ inputs.golangci_version }}
     - name: Config YAML Lint
@@ -115,6 +115,6 @@ jobs:
         severity: ${{ inputs.scan_severity }}
         exit-code: '1'
     - name: Upload Report
-      uses: github/codeql-action/upload-sarif@29b1f65c5e92e24fe6b6647da1eaabe529cec70f  # v2.11.6
+      uses: github/codeql-action/upload-sarif@83f0fe6c4988d98a455712a27f0255212bba9bd4  # v2.11.6
       with:
         sarif_file: 'trivy-results.sarif'
