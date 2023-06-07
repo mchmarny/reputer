@@ -65,6 +65,7 @@ jobs:
 
   slsa:
     needs:
+    - config
     - build
     permissions:
       contents: read
@@ -74,3 +75,4 @@ jobs:
     uses: ./.github/workflows/slsa.yaml
     with:
       image_digest: ${{ needs.build.outputs.digest }}
+      cosign_version: ${{ needs.config.outputs.cosign_version }}

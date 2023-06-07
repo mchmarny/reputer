@@ -58,7 +58,7 @@ changelog:
     - "^test:"
     - readme
     - typo
-    - "version bump"
+    - "bump version"
 
 brews:
 - tap:

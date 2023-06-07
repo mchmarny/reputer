@@ -48,7 +48,7 @@ vulncheck: ## Checks for soource vulnerabilities
 
 .PHONY: tag
 tag: ## Creates release tag 
-	git tag -s -m "version bump to $(VERSION)" $(VERSION)
+	git tag -s -m "bump version" $(VERSION)
 	git push origin $(VERSION)
 
 .PHONY: tagless
