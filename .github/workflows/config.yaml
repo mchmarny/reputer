@@ -26,7 +26,7 @@ jobs:
       GO_VERSION: ^1.20.5
       COSIGN_VERSION: v2.0.1
       ERR_VULN_SEV: 'CRITICAL,HIGH,MEDIUM'
-      LINTER_VERSION: v3.5.0
+      LINTER_VERSION: v1.53.2
       SYFT_VERSION: v0.14.2
 
     outputs:
