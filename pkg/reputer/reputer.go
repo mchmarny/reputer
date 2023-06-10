@@ -3,34 +3,12 @@ package reputer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/mchmarny/reputer/pkg/provider"
+	"github.com/mchmarny/reputer/pkg/report"
 	"github.com/pkg/errors"
 )
-
-type ListCommitAuthorsOptions struct {
-	Repo   string
-	Commit string
-	File   string
-}
-
-func (l *ListCommitAuthorsOptions) Validate() error {
-	if l == nil {
-		return errors.New("options must be populated")
-	}
-
-	if l.Repo == "" {
-		return errors.New("repo must be specified")
-	}
-
-	return nil
-}
-
-func (l *ListCommitAuthorsOptions) String() string {
-	return fmt.Sprintf("repo: %s, commit: %s", l.Repo, l.Commit)
-}
 
 // ListCommitAuthors returns a list of authors for the given repo and commit.
 func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error {
@@ -42,7 +20,12 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error
 		return errors.Wrap(err, "invalid options")
 	}
 
-	r, err := provider.GetAuthors(ctx, opt.Repo, opt.Commit)
+	q, err := report.MakeQuery(opt.Repo, opt.Commit, opt.Stats)
+	if err != nil {
+		return errors.Wrapf(err, "error creating query for %s", opt)
+	}
+
+	r, err := provider.GetAuthors(ctx, *q)
 	if err != nil {
 		return errors.Wrapf(err, "error listing authors for %s", opt)
 	}
