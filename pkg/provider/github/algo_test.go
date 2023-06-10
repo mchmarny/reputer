@@ -3,10 +3,8 @@ package github
 import (
 	"os"
 	"testing"
-	"time"
 
 	"github.com/mchmarny/reputer/pkg/report"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,62 +22,69 @@ func TestCalculateReputation(t *testing.T) {
 		wantError error
 	}{
 		{
-			name:      "nil",
-			wantError: errors.New("author required"),
-		},
-		{
 			name:      "suspended",
 			wantScore: 0,
 			author: &report.Author{
-				Username:  "suspended",
-				Suspended: true,
+				Username: "suspended",
+				Stats: &report.Stats{
+					Suspended: true,
+				},
 			},
 		},
 		{
-			name:      "date only",
+			name:      "age only",
 			wantScore: 0.1,
 			author: &report.Author{
 				Username: "date-only",
-				Created:  time.Now().AddDate(-3, 0, 0),
+				Stats: &report.Stats{
+					AgeDays: 1095,
+				},
 			},
 		},
 		{
 			name:      "positive ratio",
 			wantScore: 0.15,
 			author: &report.Author{
-				Username:  "positive-ratio",
-				Created:   time.Now().AddDate(0, -3, 0),
-				Followers: 100,
-				Following: 10,
+				Username: "positive-ratio",
+				Stats: &report.Stats{
+					AgeDays:   90,
+					Followers: 100,
+					Following: 10,
+				},
 			},
 		},
 		{
 			name:      "negative ratio",
 			wantScore: 0,
 			author: &report.Author{
-				Username:  "negative-ratio",
-				Created:   time.Now().AddDate(0, -5, 0),
-				Followers: 10,
-				Following: 100,
+				Username: "negative-ratio",
+				Stats: &report.Stats{
+					AgeDays:   90,
+					Followers: 10,
+					Following: 100,
+				},
 			},
 		},
 		{
 			name:      "public repos",
 			wantScore: 0.05,
 			author: &report.Author{
-				Username:     "public-repos",
-				Created:      time.Now().AddDate(0, -5, 0),
-				PublicRepos:  10,
-				PrivateRepos: 1,
+				Username: "public-repos",
+				Stats: &report.Stats{
+					AgeDays:     90,
+					PublicRepos: 10,
+				},
 			},
 		},
 		{
 			name:      "2FA",
 			wantScore: 0.35,
 			author: &report.Author{
-				Username:   "two-factor",
-				Created:    time.Now().AddDate(0, -5, 0),
-				StrongAuth: true,
+				Username: "two-factor",
+				Stats: &report.Stats{
+					StrongAuth: true,
+					AgeDays:    90,
+				},
 			},
 		},
 	}
