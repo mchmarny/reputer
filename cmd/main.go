@@ -19,12 +19,14 @@ var (
 	file      string
 	isDebug   bool
 	isVersion bool
+	withStats bool
 )
 
 func init() {
 	flag.StringVar(&repo, "repo", "", "Repo URI (required, e.g. github.com/owner/repo)")
 	flag.StringVar(&commit, "commit", "", "Commit at which to end the report (optional, inclusive)")
 	flag.StringVar(&file, "file", "", "Write output to file at this path (optional, stdout if not specified)")
+	flag.BoolVar(&withStats, "stats", false, "Includes author commit stats (optional, false)")
 	flag.BoolVar(&isDebug, "debug", false, "Turns logging verbose (optional, false)")
 	flag.BoolVar(&isVersion, "version", false, "Prints version only (optional, false)")
 	flag.Usage = func() {
@@ -55,6 +57,7 @@ func main() {
 	opt := &reputer.ListCommitAuthorsOptions{
 		Repo:   repo,
 		Commit: commit,
+		Stats:  withStats,
 		File:   file,
 	}
 
