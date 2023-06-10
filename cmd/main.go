@@ -10,6 +10,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	usageMsg = `
+Usage: reputer [options]
+
+Options:
+  --repo     Repo URI (required, e.g. github.com/owner/repo)
+  --commit   Commit at which to end the report (optional, inclusive)
+  --stats    Includes stats used to calculate reputation (optional)
+  --file     Write output to file at this path (optional, stdout if not specified)
+  --debug    Turns logging verbose (optional)
+  --version  Prints version only (optional)
+
+`
+)
+
 var (
 	// Set at build time.
 	version = "v0.0.1-default"
@@ -23,19 +38,18 @@ var (
 )
 
 func init() {
-	flag.StringVar(&repo, "repo", "", "Repo URI (required, e.g. github.com/owner/repo)")
-	flag.StringVar(&commit, "commit", "", "Commit at which to end the report (optional, inclusive)")
-	flag.StringVar(&file, "file", "", "Write output to file at this path (optional, stdout if not specified)")
-	flag.BoolVar(&withStats, "stats", false, "Includes author commit stats (optional, false)")
-	flag.BoolVar(&isDebug, "debug", false, "Turns logging verbose (optional, false)")
-	flag.BoolVar(&isVersion, "version", false, "Prints version only (optional, false)")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s (%s):\n", os.Args[0], version)
-		flag.PrintDefaults()
-	}
+	flag.StringVar(&repo, "repo", "", "")
+	flag.StringVar(&commit, "commit", "", "")
+	flag.BoolVar(&withStats, "stats", false, "")
+	flag.StringVar(&file, "file", "", "")
+	flag.BoolVar(&isDebug, "debug", false, "")
+	flag.BoolVar(&isVersion, "version", false, "")
 }
 
 func usage() {
+	flag.Usage = func() {
+		fmt.Fprint(os.Stderr, usageMsg)
+	}
 	flag.Usage()
 	os.Exit(1)
 }
