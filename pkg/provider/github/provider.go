@@ -2,7 +2,7 @@ package github
 
 import (
 	"context"
-	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -13,39 +13,41 @@ import (
 )
 
 const (
-	pageSize = 100
+	pageSize   = 100
+	hoursInDay = 24
 )
 
 // ListAuthors is a GitHub commit provider.
-func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Report, error) {
-	if owner == "" || repo == "" {
-		return nil, errors.New("owner and repo must be specified")
+func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
+	if err := q.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid query")
 	}
 
 	log.WithFields(log.Fields{
-		"owner":  owner,
-		"repo":   repo,
-		"commit": commit,
+		"owner":  q.Owner,
+		"repo":   q.Repo,
+		"commit": q.Commit,
+		"stats":  q.Stats,
 	}).Debug("list authors")
 
 	client := getClient()
 
 	list := make(map[string]*report.Author)
 	pageCounter := 1
-	commitCounter := int64(0)
+	totalCommitCounter := int64(0)
 
 	for {
 		opts := &hub.CommitsListOptions{
-			SHA: commit,
+			SHA: q.Commit,
 			ListOptions: hub.ListOptions{
 				Page:    pageCounter,
 				PerPage: pageSize,
 			},
 		}
 
-		p, r, err := client.Repositories.ListCommits(ctx, owner, repo, opts)
+		p, r, err := client.Repositories.ListCommits(ctx, q.Owner, q.Name, opts)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error listing commits for %s/%s", owner, repo)
+			return nil, errors.Wrapf(err, "error listing commits for %s/%s", q.Owner, q.Name)
 		}
 
 		log.WithFields(log.Fields{
@@ -70,12 +72,12 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 			}
 
 			// add commit to the list
-			list[c.GetAuthor().GetLogin()].Commits++
+			list[c.GetAuthor().GetLogin()].Stats.Commits++
 			if !*c.GetCommit().GetVerification().Verified {
-				list[c.GetAuthor().GetLogin()].UnverifiedCommits++
+				list[c.GetAuthor().GetLogin()].Stats.UnverifiedCommits++
 			}
 
-			commitCounter++
+			totalCommitCounter++
 		}
 
 		// check if we are done
@@ -87,10 +89,10 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	}
 
 	r := &report.Report{
-		Repo:         fmt.Sprintf("github.com/%s/%s", owner, repo),
-		AtCommit:     commit,
+		Repo:         q.Repo,
+		AtCommit:     q.Commit,
 		GeneratedOn:  time.Now().UTC(),
-		TotalCommits: commitCounter,
+		TotalCommits: totalCommitCounter,
 	}
 
 	// convert map to slice
@@ -101,7 +103,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 		wg.Add(1)
 		go func(a *report.Author) {
 			defer wg.Done()
-			loadAuthor(ctx, client, a)
+			loadAuthor(ctx, client, a, q.Stats)
 			authors = append(authors, a)
 		}(a)
 	}
@@ -116,7 +118,7 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 }
 
 // loadAuthor loads the author details.
-func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author) {
+func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool) {
 	if client == nil {
 		log.Error("client must be specified")
 		return
@@ -139,17 +141,19 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author) {
 		"rate_remaining": r.Rate.Remaining,
 	}).Debug("user")
 
-	// required fields
-	a.Created = u.CreatedAt.Time
-	a.Suspended = u.SuspendedAt != nil
-	a.PublicRepos = int64(u.GetPublicRepos())
-	a.PrivateRepos = u.GetTotalPrivateRepos()
-	a.Followers = int64(u.GetFollowers())
-	a.Following = int64(u.GetFollowing())
-	a.StrongAuth = u.GetTwoFactorAuthentication()
-	a.CommitsVerified = a.UnverifiedCommits == 0
+	// optional fields
+	a.Stats.Suspended = u.SuspendedAt != nil
+	a.Stats.StrongAuth = u.GetTwoFactorAuthentication()
+	a.Stats.CommitsVerified = a.Stats.UnverifiedCommits == 0
+	a.Stats.Followers = int64(u.GetFollowers())
+	a.Stats.Following = int64(u.GetFollowing())
+	a.Stats.PublicRepos = int64(u.GetPublicRepos())
+	a.Stats.PrivateRepos = u.GetTotalPrivateRepos()
 
-	// optional fields for context
+	dc := u.GetCreatedAt().Time
+	a.Stats.AgeDays = int64(math.Ceil(time.Now().UTC().Sub(dc).Hours() / hoursInDay))
+	a.Context["created"] = dc.Format(time.RFC3339)
+
 	if u.Name != nil {
 		a.Context["name"] = u.GetName()
 	}
@@ -163,4 +167,10 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author) {
 	}
 
 	calculateReputation(a)
+
+	// remove stats if not requested
+	if !stats {
+		a.Stats = nil
+		a.Context = nil
+	}
 }
