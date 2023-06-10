@@ -2,7 +2,6 @@ package gitlab
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
@@ -17,15 +16,15 @@ const (
 )
 
 // ListAuthors is a GitHub commit provider.
-func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Report, error) {
-	if owner == "" || repo == "" {
-		return nil, errors.New("owner and repo must be specified")
+func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
+	if err := q.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid query")
 	}
 
 	log.WithFields(log.Fields{
-		"owner":  owner,
-		"repo":   repo,
-		"commit": commit,
+		"owner":  q.Owner,
+		"repo":   q.Repo,
+		"commit": q.Commit,
 	}).Debug("list authors")
 
 	client, err := lab.NewClient(os.Getenv("GITLAB_TOKEN"))
@@ -34,9 +33,8 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	}
 
 	list := make(map[string]*report.Author)
-	var commitCounter int64
+	var totalCommitCounter int64
 	pageCounter := 1
-	repoNS := fmt.Sprintf("%s/%s", owner, repo)
 
 	for {
 		opts := &lab.ListCommitsOptions{
@@ -48,9 +46,9 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 			},
 		}
 
-		p, r, err := client.Commits.ListCommits(repoNS, opts, lab.WithContext(ctx))
+		p, r, err := client.Commits.ListCommits(q.Repo, opts, lab.WithContext(ctx))
 		if err != nil {
-			return nil, errors.Wrapf(err, "error listing commits for %s/%s", owner, repo)
+			return nil, errors.Wrapf(err, "error listing commits for %s", q.Repo)
 		}
 
 		log.WithFields(log.Fields{
@@ -74,8 +72,8 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 				list[c.AuthorEmail] = a
 			}
 
-			list[c.AuthorEmail].Commits++
-			commitCounter++
+			list[c.AuthorEmail].Stats.Commits++
+			totalCommitCounter++
 		}
 
 		// check if we are done
@@ -92,10 +90,10 @@ func ListAuthors(ctx context.Context, owner, repo, commit string) (*report.Repor
 	}
 
 	r := &report.Report{
-		Repo:              fmt.Sprintf("github.com/%s/%s", owner, repo),
-		AtCommit:          commit,
+		Repo:              q.Repo,
+		AtCommit:          q.Commit,
 		GeneratedOn:       time.Now().UTC(),
-		TotalCommits:      commitCounter,
+		TotalCommits:      totalCommitCounter,
 		TotalContributors: int64(len(authors)),
 		Contributors:      authors,
 	}
