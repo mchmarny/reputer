@@ -1,41 +1,40 @@
+version: 2
+
 project_name: reputer
-
-env:
-- GO111MODULE=on
-
-before:
-  hooks:
-  - go mod tidy
 
 gomod:
   proxy: false
 
 sboms:
-- artifacts: binary
+  - artifacts: binary
 
 builds:
-- binary: reputer
-  mod_timestamp: '{{ .CommitTimestamp }}'
-  dir: cmd/
-  env:
-  - CGO_ENABLED=0
-  flags:
-  - -trimpath
-  ldflags:
-  - -s -w -X main.version={{.Version}}
-  goos:
-  - linux
-  - darwin
-  - windows
-  goarch:
-  - amd64
-  - arm64
+  - binary: reputer
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    dir: cmd/
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+universal_binaries:
+  - replace: true
+    name_template: 'reputer'
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 
 release:
   github:
@@ -44,46 +43,44 @@ release:
   prerelease: auto
 
 archives:
-- format: binary
-  name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  format_overrides:
-  - goos: windows
-    format: zip
+  - formats:
+      - binary
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
 
 changelog:
   sort: asc
   filters:
     exclude:
-    - "^docs:"
-    - "^test:"
-    - readme
-    - typo
-    - "bump version"
+      - "^docs:"
+      - "^test:"
+      - readme
+      - typo
+      - "bump version"
 
 brews:
-- tap:
-    owner: mchmarny
-    name: homebrew-reputer
-    token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-  homepage: "https://github.com/mchmarny/reputer"
-  description: "Vulnerability Import CLI"
-  folder: Formula
-  license: "Apache-2.0"
-  test: |
-    system "#{bin}/reputer" --version
+  - repository:
+      owner: mchmarny
+      name: homebrew-reputer
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/mchmarny/reputer"
+    description: "CLI tool to calculate contributor reputation from Git providers"
+    directory: Formula
+    license: "Apache-2.0"
+    test: |
+      system "#{bin}/reputer" "--version"
 
 nfpms:
-- file_name_template: "reputer-{{.Version}}_{{.Os}}-{{.Arch}}"
-  homepage: https://github.com/mchmarny/reputer/
-  description: "Vulnerability Import CLI"
-  maintainer: reputer developers <reputer@thingz.io>
-  license: Apache 2.0
-  vendor: reputer developers
-  formats:
-  - deb
-  - rpm
-  bindir: /usr/bin
-
-universal_binaries:
-- replace: true
-  name_template: 'reputer'
+  - file_name_template: "reputer-{{.Version}}_{{.Os}}-{{.Arch}}"
+    homepage: https://github.com/mchmarny/reputer/
+    description: "CLI tool to calculate contributor reputation from Git providers"
+    maintainer: Mark Chmarny <mchmarny@users.noreply.github.com>
+    license: Apache 2.0
+    vendor: mchmarny
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin

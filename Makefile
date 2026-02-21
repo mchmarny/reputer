@@ -1,38 +1,73 @@
 VERSION    :=$(shell cat .version)
+COMMIT     :=$(shell git rev-parse --short HEAD)
+BRANCH     :=$(shell git rev-parse --abbrev-ref HEAD)
+GO_VERSION :=$(shell go env GOVERSION 2>/dev/null | sed 's/go//')
+GOLINT_VER :=$(shell golangci-lint --version 2>/dev/null | awk '{print $$4}' || echo "not installed")
 YAML_FILES :=$(shell find . ! -path "./vendor/*" -type f -regex ".*\.yaml" -print)
 
 all: help
 
+# =============================================================================
+# Info
+# =============================================================================
+
 .PHONY: info
-info: ## Prints all variables
+info: ## Prints project and toolchain info
 	@echo "version:  $(VERSION)"
-		
+	@echo "commit:   $(COMMIT)"
+	@echo "branch:   $(BRANCH)"
+	@echo "go:       $(GO_VERSION)"
+	@echo "linter:   $(GOLINT_VER)"
+
+# =============================================================================
+# Code Formatting & Dependencies
+# =============================================================================
+
 .PHONY: tidy
-tidy: ## Updates the go modules and vendors all dependencies
+tidy: ## Formats code and updates Go module dependencies
+	go fmt ./...
 	go mod tidy
 	go mod vendor
 
 .PHONY: upgrade
-upgrade: ## Upgrades all dependencies
+upgrade: ## Upgrades all dependencies to latest versions
 	go get -d -u ./...
 	go mod tidy
 	go mod vendor
 
-.PHONY: test
-test: tidy ## Runs unit tests
-	go test -count=1 -race -covermode=atomic -coverprofile=cover.out ./...
+.PHONY: fmt-check
+fmt-check: ## Checks if code is formatted (CI-friendly, no modifications)
+	@test -z "$$(gofmt -l .)" || (echo "Code is not formatted. Run 'make tidy' to fix:" && gofmt -l . && exit 1)
+	@echo "Code formatting check passed"
+
+# =============================================================================
+# Quality
+# =============================================================================
 
 .PHONY: lint
-lint: lint-go lint-yaml ## Lints both Go and YAML files
+lint: lint-go lint-yaml ## Lints the entire project (Go and YAML)
 	@echo "Completed Go and YAML lints"
 
 .PHONY: lint-go
-lint-go: ## Lints the entire project using Go
-	golangci-lint -c .golangci.yaml run
+lint-go: ## Lints Go files with go vet and golangci-lint
+	GOFLAGS="-mod=vendor" go vet ./...
+	GOFLAGS="-mod=vendor" golangci-lint -c .golangci.yaml run
 
 .PHONY: lint-yaml
-lint-yaml: ## Runs yamllint on all yaml files (brew install yamllint)
+lint-yaml: ## Lints YAML files with yamllint (brew install yamllint)
 	yamllint -c .yamllint $(YAML_FILES)
+
+.PHONY: test
+test: ## Runs unit tests with race detector and coverage
+	GOFLAGS="-mod=vendor" go test -count=1 -race -timeout=5m -covermode=atomic -coverprofile=cover.out ./...
+
+.PHONY: vulncheck
+vulncheck: ## Checks for source vulnerabilities
+	govulncheck -test ./...
+
+# =============================================================================
+# Build & Release
+# =============================================================================
 
 .PHONY: build
 build: tidy ## Builds CLI binary
@@ -46,27 +81,28 @@ build: tidy ## Builds CLI binary
 snapshot: test lint ## Runs test, lint before building snapshot distributables
 	GITLAB_TOKEN="" goreleaser release --snapshot --clean --timeout 10m0s
 
-.PHONY: vulncheck
-vulncheck: ## Checks for source vulnerabilities
-	govulncheck -test ./...
-
 .PHONY: tag
-tag: ## Creates release tag 
+tag: ## Creates release tag
 	git tag -s -m "bump version" $(VERSION)
 	git push origin $(VERSION)
 
 .PHONY: tagless
-tagless: ## Delete the current release tag and creates a new one
+tagless: ## Deletes the current release tag and recreates it
 	git tag -d $(VERSION)
 	git push --delete origin $(VERSION)
 
+# =============================================================================
+# Cleanup
+# =============================================================================
+
 .PHONY: clean
-clean: ## Cleans bin and temp directories
+clean: ## Cleans build artifacts
 	go clean
 	rm -fr ./vendor
 	rm -fr ./bin
+	rm -f ./cover.out
 
 .PHONY: help
-help: ## Display available commands
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk \
-		'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+help: ## Displays available commands
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk \
+		'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
