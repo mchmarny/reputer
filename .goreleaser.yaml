@@ -59,6 +59,20 @@ release:
     name: reputer
   prerelease: auto
 
+kos:
+  - id: reputer
+    build: reputer
+    repositories:
+      - ghcr.io/mchmarny/reputer
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    tags:
+      - latest
+      - "{{.Tag}}"
+    preserve_import_paths: false
+    bare: true
+
 archives:
   - formats:
       - binary
