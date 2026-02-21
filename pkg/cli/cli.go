@@ -1,4 +1,3 @@
-// Package cli defines the reputer command-line interface.
 package cli
 
 import (

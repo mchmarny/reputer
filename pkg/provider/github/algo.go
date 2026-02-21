@@ -1,4 +1,3 @@
-// Package github implements the GitHub reputation provider.
 package github
 
 import (

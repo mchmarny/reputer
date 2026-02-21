@@ -1,4 +1,3 @@
-// Package reputer orchestrates reputation report generation.
 package reputer
 
 import (

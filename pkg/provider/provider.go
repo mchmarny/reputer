@@ -1,4 +1,3 @@
-// Package provider routes reputation queries to the correct backend.
 package provider
 
 import (
