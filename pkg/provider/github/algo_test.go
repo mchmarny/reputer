@@ -91,22 +91,12 @@ func TestExpDecay(t *testing.T) {
 
 func TestCalculateReputation(t *testing.T) {
 	tests := []struct {
-		name      string
-		author    *report.Author
-		wantScore float64
+		name              string
+		author            *report.Author
+		totalCommits      int64
+		totalContributors int
+		wantScore         float64
 	}{
-		{
-			name: "suspended with stats",
-			author: &report.Author{
-				Username: "suspended",
-				Stats: &report.Stats{
-					Suspended:  true,
-					StrongAuth: true,
-					AgeDays:    1000,
-				},
-			},
-			wantScore: 0,
-		},
 		{
 			name:      "nil author",
 			author:    nil,
@@ -121,237 +111,231 @@ func TestCalculateReputation(t *testing.T) {
 			wantScore: 0,
 		},
 		{
-			name: "zero stats",
+			name: "suspended",
 			author: &report.Author{
-				Username: "zero-stats",
-				Stats:    &report.Stats{},
+				Username: "suspended",
+				Stats: &report.Stats{
+					Suspended:  true,
+					StrongAuth: true,
+					AgeDays:    1000,
+				},
 			},
 			wantScore: 0,
 		},
 		{
-			name: "2FA only",
+			name: "zero stats",
 			author: &report.Author{
-				Username: "2fa-only",
-				Stats: &report.Stats{
-					StrongAuth: true,
-				},
+				Username: "zero",
+				Stats:    &report.Stats{},
 			},
-			wantScore: 0.25,
+			totalCommits:      100,
+			totalContributors: 10,
+			// LastCommitDays=0 => expDecay=1.0 => recency=0.10
+			wantScore: 0.10,
 		},
 		{
-			name: "age 182 days - partial",
-			// 182/365 * 0.15 = 0.0747... → rounds to 0.07
+			name: "max score",
 			author: &report.Author{
-				Username: "age-182",
+				Username: "max",
 				Stats: &report.Stats{
-					AgeDays: 182,
+					StrongAuth:        true,
+					Commits:           50,
+					UnverifiedCommits: 0,
+					AgeDays:           730,
+					OrgMember:         true,
+					LastCommitDays:    0,
+					Followers:         100,
+					Following:         10,
+					PublicRepos:       30,
+					PrivateRepos:      15,
 				},
 			},
-			wantScore: 0.07,
+			totalCommits:      100,
+			totalContributors: 5,
+			wantScore:         1.00,
 		},
 		{
-			name: "age 365 days - full ceiling",
-			// 365/365 * 0.15 = 0.15
+			name: "2FA floor only",
+			author: &report.Author{
+				Username: "2fa-floor",
+				Stats: &report.Stats{
+					StrongAuth:        true,
+					Commits:           10,
+					UnverifiedCommits: 10,
+				},
+			},
+			totalCommits:      100,
+			totalContributors: 10,
+			// provenance: floor=0.1 * 0.35 = 0.035
+			// proportion: clamped(0.1/0.1)=1 * conf=1.0 * 0.15 = 0.15
+			// recency: expDecay(0,37.5)=1.0 * 0.10 = 0.10
+			// total = 0.035 + 0.15 + 0.10 = 0.285 => 0.29
+			wantScore: 0.29,
+		},
+		{
+			name: "no 2FA core contributor all signed",
+			author: &report.Author{
+				Username: "no-2fa-core",
+				Stats: &report.Stats{
+					StrongAuth:        false,
+					Commits:           10,
+					UnverifiedCommits: 0,
+				},
+			},
+			totalCommits:      20,
+			totalContributors: 2,
+			// provenance: verified=1.0, prop=0.5, ceil=0.5, discount=0.5*1.0=0.5, mult=0.5
+			//   raw=1.0*0.5=0.5, 0.5*0.35=0.175
+			// proportion: clamped(0.5/0.5)=1 * conf=20/30=0.667 * 0.15 = 0.10
+			// recency: halfLife=81.9, decay=1.0, 1.0*0.10=0.10
+			// total = 0.175 + 0.10 + 0.10 = 0.375 => 0.38
+			wantScore: 0.38,
+		},
+		{
+			name: "no 2FA peripheral all signed",
+			author: &report.Author{
+				Username: "no-2fa-periph",
+				Stats: &report.Stats{
+					StrongAuth:        false,
+					Commits:           1,
+					UnverifiedCommits: 0,
+				},
+			},
+			totalCommits:      100,
+			totalContributors: 20,
+			// provenance: verified=1.0, prop=0.01, ceil=0.05, discount=0.5*0.2=0.1, mult=0.9
+			//   raw=1.0*0.9=0.9, 0.9*0.35=0.315
+			// proportion: clamped(0.01/0.05)=0.2 * conf=100/200=0.5 * 0.15 = 0.015
+			// recency: halfLife=29.6, decay=1.0, 1.0*0.10=0.10
+			// total = 0.315 + 0.015 + 0.10 = 0.43
+			wantScore: 0.43,
+		},
+		{
+			name: "age 30 days only",
+			author: &report.Author{
+				Username: "age-30",
+				Stats: &report.Stats{
+					AgeDays: 30,
+				},
+			},
+			totalCommits:      100,
+			totalContributors: 10,
+			// age: logCurve(30,730)*0.15 = 0.521*0.15 = 0.078
+			// recency: 1.0*0.10 = 0.10
+			// total = 0.178 => 0.18
+			wantScore: 0.18,
+		},
+		{
+			name: "age 365 days only",
 			author: &report.Author{
 				Username: "age-365",
 				Stats: &report.Stats{
 					AgeDays: 365,
 				},
 			},
-			wantScore: 0.15,
-		},
-		{
-			name: "age 1095 days - clamped at ceiling",
-			// clamped to 1.0 * 0.15 = 0.15
-			author: &report.Author{
-				Username: "age-1095",
-				Stats: &report.Stats{
-					AgeDays: 1095,
-				},
-			},
-			wantScore: 0.15,
-		},
-		{
-			name: "10 public repos - partial",
-			// 10/20 * 0.10 = 0.05
-			author: &report.Author{
-				Username: "pub-10",
-				Stats: &report.Stats{
-					PublicRepos: 10,
-				},
-			},
-			wantScore: 0.05,
-		},
-		{
-			name: "20 public repos - full ceiling",
-			// 20/20 * 0.10 = 0.10
-			author: &report.Author{
-				Username: "pub-20",
-				Stats: &report.Stats{
-					PublicRepos: 20,
-				},
-			},
-			wantScore: 0.10,
-		},
-		{
-			name: "5 private repos - partial",
-			// 5/10 * 0.10 = 0.05
-			author: &report.Author{
-				Username: "priv-5",
-				Stats: &report.Stats{
-					PrivateRepos: 5,
-				},
-			},
-			wantScore: 0.05,
-		},
-		{
-			name: "follower ratio 2:1 - partial",
-			// ratio=2.0, 2/10 * 0.15 = 0.03
-			author: &report.Author{
-				Username: "ratio-2",
-				Stats: &report.Stats{
-					Followers: 20,
-					Following: 10,
-				},
-			},
-			wantScore: 0.03,
-		},
-		{
-			name: "follower ratio 10:1 - full ceiling",
-			// ratio=10.0, 10/10 * 0.15 = 0.15
-			author: &report.Author{
-				Username: "ratio-10",
-				Stats: &report.Stats{
-					Followers: 100,
-					Following: 10,
-				},
-			},
-			wantScore: 0.15,
-		},
-		{
-			name: "follower ratio 0 following - skip",
-			author: &report.Author{
-				Username: "ratio-zero-following",
-				Stats: &report.Stats{
-					Followers: 100,
-					Following: 0,
-				},
-			},
-			wantScore: 0,
-		},
-		{
-			name: "follower ratio 1:100 - rounds to 0",
-			// ratio=0.01, 0.01/10 * 0.15 = 0.00015 → rounds to 0
-			author: &report.Author{
-				Username: "ratio-bad",
-				Stats: &report.Stats{
-					Followers: 1,
-					Following: 100,
-				},
-			},
-			wantScore: 0,
-		},
-		{
-			name: "10/10 verified commits",
-			// 10/10=1.0, clampedRatio(1.0,1.0)=1, 1*0.25=0.25
-			author: &report.Author{
-				Username: "verified-all",
-				Stats: &report.Stats{
-					Commits:           10,
-					UnverifiedCommits: 0,
-				},
-			},
-			wantScore: 0.25,
-		},
-		{
-			name: "9/10 verified commits",
-			// 9/10=0.9, 0.9*0.25=0.225 → rounds to 0.23
-			author: &report.Author{
-				Username: "verified-9",
-				Stats: &report.Stats{
-					Commits:           10,
-					UnverifiedCommits: 1,
-				},
-			},
+			totalCommits:      100,
+			totalContributors: 10,
+			// age: logCurve(365,730)*0.15 = 0.895*0.15 = 0.134
+			// recency: 1.0*0.10 = 0.10
+			// total = 0.234 => 0.23
 			wantScore: 0.23,
 		},
 		{
-			name: "5/10 verified commits",
-			// 5/10=0.5, 0.5*0.25=0.125 → rounds to 0.13
+			name: "follower ratio 3:1",
 			author: &report.Author{
-				Username: "verified-5",
+				Username: "ratio-3",
 				Stats: &report.Stats{
-					Commits:           10,
-					UnverifiedCommits: 5,
+					Followers: 30,
+					Following: 10,
 				},
 			},
+			totalCommits:      100,
+			totalContributors: 10,
+			// recency: 1.0*0.10 = 0.10
+			// followers: logCurve(3,10)*0.10 = 0.578*0.10 = 0.058
+			// total = 0.158 => 0.16
+			wantScore: 0.16,
+		},
+		{
+			name: "5 repos combined",
+			author: &report.Author{
+				Username: "repos-5",
+				Stats: &report.Stats{
+					PublicRepos:  3,
+					PrivateRepos: 2,
+				},
+			},
+			totalCommits:      100,
+			totalContributors: 10,
+			// recency: 1.0*0.10 = 0.10
+			// repos: logCurve(5,30)*0.05 = 0.522*0.05 = 0.026
+			// total = 0.126 => 0.13
 			wantScore: 0.13,
 		},
 		{
-			name: "0/10 verified commits",
-			// 0/10=0, clampedRatio(0,1.0)=0
+			name: "engagement only - at ceiling",
 			author: &report.Author{
-				Username: "verified-0",
+				Username: "engaged",
 				Stats: &report.Stats{
-					Commits:           10,
-					UnverifiedCommits: 10,
+					Commits:        10,
+					LastCommitDays: 0,
 				},
 			},
-			wantScore: 0,
+			totalCommits:      100,
+			totalContributors: 10,
+			// provenance (no 2FA): verified=1.0, prop=0.1, ceil=0.1, discount=0.5*1=0.5, mult=0.5
+			//   raw=1.0*0.5=0.5, 0.5*0.35=0.175
+			// proportion: clamped(0.1/0.1)=1 * conf=1.0 * 0.15 = 0.15
+			// recency: decay=1.0, 1.0*0.10=0.10
+			// total = 0.175+0.15+0.10 = 0.425 => 0.42
+			wantScore: 0.42,
 		},
 		{
-			name: "all criteria max - full score",
-			// 0.25+0.25+0.15+0.15+0.10+0.10 = 1.00
+			name: "low confidence repo",
 			author: &report.Author{
-				Username: "max-score",
+				Username: "low-conf",
 				Stats: &report.Stats{
-					StrongAuth:        true,
-					Commits:           100,
-					UnverifiedCommits: 0,
-					AgeDays:           730,
-					Followers:         200,
-					Following:         10,
-					PublicRepos:       30,
-					PrivateRepos:      15,
+					Commits:        3,
+					LastCommitDays: 0,
 				},
 			},
-			wantScore: 1.00,
+			totalCommits:      5,
+			totalContributors: 3,
+			// provenance (no 2FA): verified=1.0, prop=3/5=0.6, ceil=max(1/3,0.05)=0.333
+			//   discount=0.5*1.0=0.5, mult=0.5, raw=0.5, 0.5*0.35=0.175
+			// proportion: clamped(0.6/0.333)=1.0 * conf=5/30=0.167 * 0.15 = 0.025
+			// recency: halfLife=64.9, decay=1.0, 1.0*0.10=0.10
+			// total = 0.175+0.025+0.10 = 0.30
+			wantScore: 0.30,
 		},
 		{
-			name: "realistic mid-level contributor",
-			// 2FA: 0.25
-			// age: 200/365*0.15 = 0.0821... → contributes 0.08 to rep
-			// public: 8/20*0.10 = 0.04
-			// private: 2/10*0.10 = 0.02
-			// ratio: followers=15,following=10 → 1.5/10*0.15 = 0.0225
-			// verified: 7/10=0.7 → 0.7*0.25 = 0.175
-			// total = 0.25+0.0821+0.04+0.02+0.0225+0.175 = 0.5896 → 0.59
+			name: "recency 90 days solo repo",
 			author: &report.Author{
-				Username: "mid-level",
+				Username: "dormant-solo",
 				Stats: &report.Stats{
-					StrongAuth:        true,
-					Commits:           10,
-					UnverifiedCommits: 3,
-					AgeDays:           200,
-					Followers:         15,
-					Following:         10,
-					PublicRepos:       8,
-					PrivateRepos:      2,
+					Commits:        5,
+					LastCommitDays: 90,
 				},
 			},
-			wantScore: 0.59,
+			totalCommits:      10,
+			totalContributors: 1,
+			// provenance (no 2FA): verified=1.0, prop=5/10=0.5, ceil=max(1/1,0.05)=1.0
+			//   discount=0.5*0.5=0.25, mult=0.75, raw=0.75, 0.75*0.35=0.2625
+			// proportion: clamped(0.5/1.0)=0.5 * conf=10/30=0.333 * 0.15 = 0.025
+			// recency: halfLife=90.0 (1/ln(2)=1.4427>1.0 capped), decay(90,90)=0.5, 0.5*0.10=0.05
+			// total = 0.2625+0.025+0.05 = 0.3375 => 0.34
+			wantScore: 0.34,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			calculateReputation(tt.author)
+			calculateReputation(tt.author, tt.totalCommits, tt.totalContributors)
 			if tt.author == nil {
 				return
 			}
-			assert.Equalf(t, tt.wantScore, tt.author.Reputation,
-				"%s - wrong reputation: got = %v, want %v",
-				tt.author.Username, tt.author.Reputation, tt.wantScore)
+			assert.InDelta(t, tt.wantScore, tt.author.Reputation, 0.01,
+				"%s: got=%.4f want=%.4f", tt.author.Username, tt.author.Reputation, tt.wantScore)
 		})
 	}
 }

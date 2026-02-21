@@ -168,7 +168,7 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 		a.Context.Company = u.GetCompany()
 	}
 
-	calculateReputation(a)
+	calculateReputation(a, 0, 0)
 
 	if !stats {
 		a.Stats = nil

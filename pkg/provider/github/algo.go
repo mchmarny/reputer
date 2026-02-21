@@ -9,19 +9,27 @@ import (
 )
 
 const (
-	// weights sum to 1.0
-	authWeight           = 0.25
-	commitVerifiedWeight = 0.25
-	ratioWeight          = 0.15
-	ageWeight            = 0.15
-	privateRepoWeight    = 0.10
-	publicRepoWeight     = 0.10
+	// Category weights (sum to 1.0).
+	// Derived from threat-model ranking: Provenance > Identity > Engagement > Community.
+	provenanceWeight = 0.35
+	ageWeight        = 0.15
+	orgMemberWeight  = 0.10
+	proportionWeight = 0.15
+	recencyWeight    = 0.10
+	followerWeight   = 0.10
+	repoCountWeight  = 0.05
 
-	// graduated scoring ceilings (signal saturates at 1.0)
-	ageFullDays       = 365
-	publicRepoFull    = 20
-	privateRepoFull   = 10
-	followerRatioFull = 10.0
+	// Ceilings and parameters.
+	ageCeilDays           = 730
+	followerRatioCeil     = 10.0
+	repoCountCeil         = 30.0
+	baseHalfLifeDays      = 90.0
+	minHalfLifeMultiple   = 0.25
+	provenanceFloor       = 0.1
+	minProportionCeil     = 0.05
+	minConfidenceCommits  = 30
+	confCommitsPerContrib = 10
+	noTFAMaxDiscount      = 0.5
 )
 
 // clampedRatio maps val linearly into [0.0, 1.0] with ceil as the saturation point.
@@ -36,7 +44,6 @@ func clampedRatio(val, ceil float64) float64 {
 }
 
 // logCurve maps val into [0.0, 1.0] with logarithmic diminishing returns.
-// f(v, c) = log(1+v) / log(1+c), clamped to [0, 1].
 func logCurve(val, ceil float64) float64 {
 	if ceil <= 0 || val <= 0 {
 		return 0
@@ -49,7 +56,6 @@ func logCurve(val, ceil float64) float64 {
 }
 
 // expDecay models freshness with a half-life.
-// f(v, h) = exp(-v * ln2 / h). Returns 1.0 at v=0, 0.5 at v=halfLife.
 func expDecay(val, halfLife float64) float64 {
 	if halfLife <= 0 {
 		return 0
@@ -60,15 +66,8 @@ func expDecay(val, halfLife float64) float64 {
 	return math.Exp(-val * math.Ln2 / halfLife)
 }
 
-// calculateReputation calculates the reputation score for the given author
-// based on the following criteria:
-// - suspended users have no reputation
-// - repos (private and public)
-// - age
-// - 2FA
-// - follower ratio
-// - commit verification
-func calculateReputation(author *report.Author) {
+// calculateReputation scores an author using the v2 risk-weighted categorical model.
+func calculateReputation(author *report.Author, totalCommits int64, totalContributors int) {
 	if author == nil {
 		return
 	}
@@ -86,31 +85,76 @@ func calculateReputation(author *report.Author) {
 
 	var rep float64
 
-	rep += clampedRatio(float64(s.PrivateRepos), privateRepoFull) * privateRepoWeight
-	log.Debugf("private repos [%s]: %.2f (%d)", author.Username, rep, s.PrivateRepos)
+	// --- Category 1: Code Provenance (0.35) ---
+	if s.Commits > 0 && totalCommits > 0 {
+		verifiedRatio := float64(s.Commits-s.UnverifiedCommits) / float64(s.Commits)
+		proportion := float64(s.Commits) / float64(totalCommits)
+		propCeil := math.Max(1.0/float64(max(totalContributors, 1)), minProportionCeil)
 
-	rep += clampedRatio(float64(s.PublicRepos), publicRepoFull) * publicRepoWeight
-	log.Debugf("public repos [%s]: %.2f (%d)", author.Username, rep, s.PublicRepos)
+		securityMultiplier := 1.0
+		if !s.StrongAuth {
+			securityMultiplier = 1.0 - noTFAMaxDiscount*clampedRatio(proportion, propCeil)
+		}
 
-	rep += clampedRatio(float64(s.AgeDays), ageFullDays) * ageWeight
-	log.Debugf("account age [%s]: %.2f (%d days)", author.Username, rep, s.AgeDays)
+		rawScore := verifiedRatio * securityMultiplier
+		if s.StrongAuth && rawScore < provenanceFloor {
+			rawScore = provenanceFloor
+		}
 
-	if s.StrongAuth {
-		rep += authWeight
+		rep += rawScore * provenanceWeight
+		log.Debugf("provenance [%s]: %.4f (verified=%.2f, multiplier=%.2f)",
+			author.Username, rep, verifiedRatio, securityMultiplier)
+	} else if s.StrongAuth {
+		rep += provenanceFloor * provenanceWeight
+		log.Debugf("provenance [%s]: %.4f (2FA floor, no commits)",
+			author.Username, rep)
 	}
-	log.Debugf("2fa [%s]: %.2f", author.Username, rep)
 
+	// --- Category 2: Identity Authenticity (0.25) ---
+	rep += logCurve(float64(s.AgeDays), ageCeilDays) * ageWeight
+	log.Debugf("age [%s]: %.4f (%d days)", author.Username, rep, s.AgeDays)
+
+	if s.OrgMember {
+		rep += orgMemberWeight
+	}
+	log.Debugf("org [%s]: %.4f (member=%v)", author.Username, rep, s.OrgMember)
+
+	// --- Category 3: Engagement Depth (0.25) ---
+	if s.Commits > 0 && totalCommits > 0 {
+		proportion := float64(s.Commits) / float64(totalCommits)
+		propCeil := math.Max(1.0/float64(max(totalContributors, 1)), minProportionCeil)
+
+		confThreshold := float64(max(
+			int64(totalContributors)*int64(confCommitsPerContrib),
+			int64(minConfidenceCommits),
+		))
+		confidence := math.Min(float64(totalCommits)/confThreshold, 1.0)
+
+		rep += clampedRatio(proportion, propCeil) * confidence * proportionWeight
+		log.Debugf("proportion [%s]: %.4f (prop=%.3f, ceil=%.3f, conf=%.3f)",
+			author.Username, rep, proportion, propCeil, confidence)
+	}
+
+	numContrib := max(totalContributors, 1)
+	halfLifeMult := math.Max(1.0/math.Log(1+float64(numContrib)), minHalfLifeMultiple)
+	if halfLifeMult > 1.0 {
+		halfLifeMult = 1.0
+	}
+	halfLife := baseHalfLifeDays * halfLifeMult
+	rep += expDecay(float64(s.LastCommitDays), halfLife) * recencyWeight
+	log.Debugf("recency [%s]: %.4f (%d days, halfLife=%.1f)",
+		author.Username, rep, s.LastCommitDays, halfLife)
+
+	// --- Category 4: Community Standing (0.15) ---
 	if s.Following > 0 {
 		ratio := float64(s.Followers) / float64(s.Following)
-		rep += clampedRatio(ratio, followerRatioFull) * ratioWeight
-		log.Debugf("follow ratio [%s]: %.2f (%f ratio)", author.Username, rep, ratio)
+		rep += logCurve(ratio, followerRatioCeil) * followerWeight
+		log.Debugf("followers [%s]: %.4f (ratio=%.2f)", author.Username, rep, ratio)
 	}
 
-	if s.Commits > 0 {
-		verified := float64(s.Commits-s.UnverifiedCommits) / float64(s.Commits)
-		rep += clampedRatio(verified, 1.0) * commitVerifiedWeight
-		log.Debugf("commit [%s]: %.2f (%d/%d verified)", author.Username, rep, s.Commits-s.UnverifiedCommits, s.Commits)
-	}
+	totalRepos := float64(s.PublicRepos + s.PrivateRepos)
+	rep += logCurve(totalRepos, repoCountCeil) * repoCountWeight
+	log.Debugf("repos [%s]: %.4f (%d combined)", author.Username, rep, int64(totalRepos))
 
 	author.Reputation = report.ToFixed(rep, 2)
 	log.Debugf("reputation [%s]: %.2f", author.Username, author.Reputation)
