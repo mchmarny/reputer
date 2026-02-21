@@ -55,7 +55,7 @@ lint-go: ## Lints Go files with go vet and golangci-lint
 
 .PHONY: lint-yaml
 lint-yaml: ## Lints YAML files with yamllint (brew install yamllint)
-	yamllint -c .yamllint $(YAML_FILES)
+	yamllint -c .yamllint.yaml $(YAML_FILES)
 
 .PHONY: test
 test: ## Runs unit tests with race detector and coverage
