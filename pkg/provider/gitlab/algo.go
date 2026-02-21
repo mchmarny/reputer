@@ -1,3 +1,4 @@
+// Package gitlab implements the GitLab reputation provider.
 package gitlab
 
 import (

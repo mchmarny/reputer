@@ -1,3 +1,4 @@
+// Package report defines the data model for reputation reports.
 package report
 
 import (

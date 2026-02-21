@@ -30,7 +30,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		return nil, fmt.Errorf("GITLAB_TOKEN environment variable must be set")
 	}
 
-	client, err := lab.NewClient(token, lab.WithHTTPClient(&http.Client{
+	client, err := lab.NewClient(token, lab.WithHTTPClient(&http.Client{ //nolint:staticcheck // TODO: migrate to gitlab.com/gitlab-org/api/client-go
 		Timeout: httpTimeout,
 	}))
 	if err != nil {
@@ -43,8 +43,8 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 
 	for {
 		opts := &lab.ListCommitsOptions{
-			All:       lab.Bool(true),
-			WithStats: lab.Bool(true),
+			All:       lab.Bool(true), //nolint:staticcheck // TODO: migrate to Ptr
+			WithStats: lab.Bool(true), //nolint:staticcheck // TODO: migrate to Ptr
 			ListOptions: lab.ListOptions{
 				Page:    pageCounter,
 				PerPage: pageSize,

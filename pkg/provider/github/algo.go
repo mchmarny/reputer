@@ -1,3 +1,4 @@
+// Package github implements the GitHub reputation provider.
 package github
 
 import (
@@ -6,19 +7,31 @@ import (
 )
 
 const (
-	// weights should add up to 0.95
-	authWeight           = 0.35
+	// weights sum to 1.0
+	authWeight           = 0.25
 	commitVerifiedWeight = 0.25
 	ratioWeight          = 0.15
-	ageWeight            = 0.10
-	privateRepoWeight    = 0.05
-	publicRepoWeight     = 0.05
+	ageWeight            = 0.15
+	privateRepoWeight    = 0.10
+	publicRepoWeight     = 0.10
 
-	privateRepoMin = 1
-	publicRepoMin  = 5
-	ageDayMin      = 182 // 6 months
-	ratioMin       = 1.0
+	// graduated scoring ceilings (signal saturates at 1.0)
+	ageFullDays       = 365
+	publicRepoFull    = 20
+	privateRepoFull   = 10
+	followerRatioFull = 10.0
 )
+
+// clampedRatio maps val linearly into [0.0, 1.0] with ceil as the saturation point.
+func clampedRatio(val, ceil float64) float64 {
+	if ceil <= 0 || val <= 0 {
+		return 0
+	}
+	if val >= ceil {
+		return 1
+	}
+	return val / ceil
+}
 
 // calculateReputation calculates the reputation score for the given author
 // based on the following criteria:
@@ -46,36 +59,30 @@ func calculateReputation(author *report.Author) {
 
 	var rep float64
 
-	if s.PrivateRepos > privateRepoMin {
-		rep += privateRepoWeight
-		log.Debugf("private repos [%s]: %.2f (%d)", author.Username, rep, s.PrivateRepos)
-	}
-	if s.PublicRepos > publicRepoMin {
-		rep += publicRepoWeight
-		log.Debugf("public repos [%s]: %.2f (%d)", author.Username, rep, s.PublicRepos)
-	}
+	rep += clampedRatio(float64(s.PrivateRepos), privateRepoFull) * privateRepoWeight
+	log.Debugf("private repos [%s]: %.2f (%d)", author.Username, rep, s.PrivateRepos)
 
-	if s.AgeDays > ageDayMin {
-		rep += ageWeight
-		log.Debugf("account age [%s]: %.2f (%d days)", author.Username, rep, s.AgeDays)
-	}
+	rep += clampedRatio(float64(s.PublicRepos), publicRepoFull) * publicRepoWeight
+	log.Debugf("public repos [%s]: %.2f (%d)", author.Username, rep, s.PublicRepos)
+
+	rep += clampedRatio(float64(s.AgeDays), ageFullDays) * ageWeight
+	log.Debugf("account age [%s]: %.2f (%d days)", author.Username, rep, s.AgeDays)
 
 	if s.StrongAuth {
 		rep += authWeight
-		log.Debugf("2fa [%s]: %.2f", author.Username, rep)
 	}
+	log.Debugf("2fa [%s]: %.2f", author.Username, rep)
 
 	if s.Following > 0 {
 		ratio := float64(s.Followers) / float64(s.Following)
-		if ratio > ratioMin {
-			rep += ratioWeight
-		}
+		rep += clampedRatio(ratio, followerRatioFull) * ratioWeight
 		log.Debugf("follow ratio [%s]: %.2f (%f ratio)", author.Username, rep, ratio)
 	}
 
-	if s.CommitsVerified {
-		rep += commitVerifiedWeight
-		log.Debugf("commit [%s]: %.2f (%d commits)", author.Username, rep, s.Commits)
+	if s.Commits > 0 {
+		verified := float64(s.Commits-s.UnverifiedCommits) / float64(s.Commits)
+		rep += clampedRatio(verified, 1.0) * commitVerifiedWeight
+		log.Debugf("commit [%s]: %.2f (%d/%d verified)", author.Username, rep, s.Commits-s.UnverifiedCommits, s.Commits)
 	}
 
 	author.Reputation = report.ToFixed(rep, 2)
