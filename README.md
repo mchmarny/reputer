@@ -1,17 +1,22 @@
 # reputer
 
-Reporting tool to calculate contributor reputation based on graduated scoring algorithm for each provider. Currently supported providers: `github` and `gitlab`.
+[![Build Status](https://github.com/mchmarny/reputer/actions/workflows/on-push.yaml/badge.svg)](https://github.com/mchmarny/reputer/actions/workflows/on-push.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mchmarny/reputer)](https://goreportcard.com/report/github.com/mchmarny/reputer)
+[![Go Reference](https://pkg.go.dev/badge/github.com/mchmarny/reputer.svg)](https://pkg.go.dev/github.com/mchmarny/reputer)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-> Note: `reputation` is a value between 0 (no/low reputation) to 1.0 (high reputation). Each signal (account age, repos, commit verification, follower ratio, 2FA) contributes proportionally rather than as binary pass/fail. The algorithms consider only provider information about each contributor so the `reputation` is more an identity confidence score until additional/external data sources are introduced.
+CLI tool that calculates contributor reputation scores from Git provider APIs. Currently supported providers: **GitHub** and **GitLab**.
 
-## install
+> Reputation is a value between `0` (no/low reputation) and `1.0` (high reputation). Each signal (account age, repos, commit verification, follower ratio, 2FA) contributes proportionally rather than as binary pass/fail. The algorithms consider only provider information about each contributor, so `reputation` is more of an identity confidence score until additional/external data sources are introduced.
+
+## Install
 
 ```shell
 brew tap mchmarny/reputer
 brew install reputer
 ```
 
-## usage
+## Usage
 
 ```shell
 reputer [flags]
@@ -19,14 +24,16 @@ reputer [flags]
 
 Supported flags:
 
-* `--repo` - Repo URI (required, e.g. github.com/owner/repo)
-* `--commit` - Commit at which to end the report (optional, inclusive)
-* `--stats` - Includes stats used to calculate reputation (optional)
-* `--file` - Write output to file at this path (optional, stdout if not specified)
-* `--debug` - Turns logging verbose (optional)
-* `--version` - Prints version only (optional)
+| Flag | Description |
+|------|-------------|
+| `--repo` | Repo URI (required, e.g. `github.com/owner/repo`) |
+| `--commit` | Commit at which to end the report (optional, inclusive) |
+| `--stats` | Include stats used to calculate reputation (optional) |
+| `--file` | Write output to file at this path (optional, stdout if not specified) |
+| `--debug` | Turn on verbose logging (optional) |
+| `--version` | Print version only (optional) |
 
-example:
+Example:
 
 ```shell
 reputer \
@@ -34,7 +41,7 @@ reputer \
     --commit 3c239456ef63b45322b7ccdceb7f835c01fba862
 ```
 
-results in:
+Output:
 
 ```json
 {
@@ -46,13 +53,12 @@ results in:
     {
       "username": "mchmarny",
       "reputation": 1.0
-    },
-    ...
+    }
   ]
 }
 ```
 
-Same command with `--stats`
+With `--stats`:
 
 ```json
 {
@@ -80,15 +86,14 @@ Same command with `--stats`
         "followers": 231,
         "following": 8
       }
-    },
-    ...
+    }
   ]
 }
 ```
 
-## scoring
+## Scoring
 
-Reputation is a value between `0` (no/low reputation) and `1.0` (high reputation), calculated using graduated proportional scoring. Each signal contributes linearly between 0 and its weight ceiling:
+Reputation is calculated using graduated proportional scoring. Each signal contributes linearly between 0 and its weight ceiling:
 
 | Signal | Weight | Ceiling | Notes |
 |--------|--------|---------|-------|
@@ -99,13 +104,13 @@ Reputation is a value between `0` (no/low reputation) and `1.0` (high reputation
 | Public repositories | 0.10 | 20 repos | |
 | Private repositories | 0.10 | 10 repos | |
 
-Each signal is clamped: `min(1.0, value / ceiling) × weight`. The final score is the sum of all weighted signals. Suspended users always score `0`.
+Each signal is clamped: `min(1.0, value / ceiling) * weight`. The final score is the sum of all weighted signals. Suspended users always score `0`.
 
-## github actions
+## GitHub Action
 
-A reusable workflow is provided to welcome first-time PR contributors with a comment that includes their reputation stats.
+A composite action is provided to welcome first-time PR contributors with a comment that includes their reputation stats.
 
-### caller example
+### Caller example
 
 Add this to your repo at `.github/workflows/welcome.yaml`:
 
@@ -122,7 +127,7 @@ jobs:
     uses: mchmarny/reputer/.github/workflows/welcome.yaml@main
 ```
 
-### inputs
+### Inputs
 
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -132,7 +137,7 @@ jobs:
 
 The caller's `permissions` block grants `pull-requests: write` and `contents: read` to the automatic `GITHUB_TOKEN`. No additional secrets are needed.
 
-### behavior
+### Behavior
 
 1. Checks if the PR author is a first-time contributor
 2. Installs reputer (pinned version or latest release)
@@ -140,10 +145,18 @@ The caller's `permissions` block grants `pull-requests: write` and `contents: re
 4. Posts a comment with:
    - Welcome message (first-time contributors only)
    - **Contributor Reputation** table if reputer finds the author in the repo history
-   - **Contributor Profile** table (GitHub API fallback) if the author has no commits in the repo yet
+   - **Contributor Profile** table (GitHub API fallback) if the author has no commits yet
 
 The workflow uses `pull_request_target` context and does not check out PR code, so it is safe for use on public repositories.
 
-## disclaimer
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [DEVELOPMENT.md](DEVELOPMENT.md) for development setup.
+
+## License
+
+[Apache License 2.0](LICENSE)
+
+## Disclaimer
 
 This is my personal project and it does not represent my employer. While I do my best to ensure that everything works, I take no responsibility for issues caused by this code.
