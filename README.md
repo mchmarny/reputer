@@ -120,8 +120,6 @@ permissions:
 jobs:
   welcome:
     uses: mchmarny/reputer/.github/workflows/welcome.yaml@main
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### inputs
@@ -132,11 +130,7 @@ jobs:
 | `include-stats` | boolean | `true` | Whether to show the stats table |
 | `reputer-version` | string | `latest` | Reputer release version to install (e.g. `v0.2.4`) |
 
-### secrets
-
-| Secret | Required | Description |
-|--------|----------|-------------|
-| `token` | yes | GitHub token with `pull-requests: write` and `contents: read` |
+The caller's `permissions` block grants `pull-requests: write` and `contents: read` to the automatic `GITHUB_TOKEN`. No additional secrets are needed.
 
 ### behavior
 
