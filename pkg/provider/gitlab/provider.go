@@ -2,34 +2,39 @@ package gitlab
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/mchmarny/reputer/pkg/report"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	lab "github.com/xanzy/go-gitlab"
 )
 
 const (
-	pageSize = 100
+	pageSize    = 100
+	httpTimeout = 30 * time.Second
 )
 
-// ListAuthors is a GitHub commit provider.
+// ListAuthors is a GitLab commit provider.
 func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
-	if err := q.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid query")
-	}
-
 	log.WithFields(log.Fields{
 		"owner":  q.Owner,
 		"repo":   q.Repo,
 		"commit": q.Commit,
 	}).Debug("list authors")
 
-	client, err := lab.NewClient(os.Getenv("GITLAB_TOKEN"))
+	token := os.Getenv("GITLAB_TOKEN")
+	if token == "" {
+		return nil, fmt.Errorf("GITLAB_TOKEN environment variable must be set")
+	}
+
+	client, err := lab.NewClient(token, lab.WithHTTPClient(&http.Client{
+		Timeout: httpTimeout,
+	}))
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating client")
+		return nil, fmt.Errorf("error creating GitLab client: %w", err)
 	}
 
 	list := make(map[string]*report.Author)
@@ -48,7 +53,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 
 		p, r, err := client.Commits.ListCommits(q.Repo, opts, lab.WithContext(ctx))
 		if err != nil {
-			return nil, errors.Wrapf(err, "error listing commits for %s", q.Repo)
+			return nil, fmt.Errorf("error listing commits for %s: %w", q.Repo, err)
 		}
 
 		log.WithFields(log.Fields{
@@ -62,12 +67,11 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 			"total_pages": r.TotalPages,
 		}).Debug("commit list")
 
-		// loop through commits
 		for _, c := range p {
 			if _, ok := list[c.AuthorEmail]; !ok {
 				a := report.MakeAuthor(c.AuthorEmail)
 				a.Reputation = calculateReputation(c.Stats)
-				a.Context["name"] = c.AuthorName
+				a.Context.Name = c.AuthorName
 
 				list[c.AuthorEmail] = a
 			}
@@ -76,7 +80,6 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 			totalCommitCounter++
 		}
 
-		// check if we are done
 		if len(p) < pageSize {
 			break
 		}
@@ -84,12 +87,12 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		pageCounter++
 	}
 
-	authors := make([]*report.Author, 0)
+	authors := make([]*report.Author, 0, len(list))
 	for _, a := range list {
 		authors = append(authors, a)
 	}
 
-	r := &report.Report{
+	rpt := &report.Report{
 		Repo:              q.Repo,
 		AtCommit:          q.Commit,
 		GeneratedOn:       time.Now().UTC(),
@@ -98,5 +101,5 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		Contributors:      authors,
 	}
 
-	return r, nil
+	return rpt, nil
 }

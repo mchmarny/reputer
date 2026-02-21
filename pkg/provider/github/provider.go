@@ -2,27 +2,25 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"sync"
 	"time"
 
 	hub "github.com/google/go-github/v52/github"
 	"github.com/mchmarny/reputer/pkg/report"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
-	pageSize   = 100
-	hoursInDay = 24
+	pageSize       = 100
+	hoursInDay     = 24
+	maxConcurrency = 10
 )
 
 // ListAuthors is a GitHub commit provider.
 func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
-	if err := q.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid query")
-	}
-
 	log.WithFields(log.Fields{
 		"owner":  q.Owner,
 		"repo":   q.Repo,
@@ -30,7 +28,10 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		"stats":  q.Stats,
 	}).Debug("list authors")
 
-	client := getClient()
+	client, err := getClient()
+	if err != nil {
+		return nil, fmt.Errorf("error creating GitHub client: %w", err)
+	}
 
 	list := make(map[string]*report.Author)
 	pageCounter := 1
@@ -47,7 +48,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 
 		p, r, err := client.Repositories.ListCommits(ctx, q.Owner, q.Name, opts)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error listing commits for %s/%s", q.Owner, q.Name)
+			return nil, fmt.Errorf("error listing commits for %s/%s: %w", q.Owner, q.Name, err)
 		}
 
 		log.WithFields(log.Fields{
@@ -60,27 +61,24 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 			"rate_remaining": r.Rate.Remaining,
 		}).Debug("commit list")
 
-		// loop through commits
 		for _, c := range p {
 			if c.Author == nil {
 				continue
 			}
 
-			// check if author already in the list
-			if _, ok := list[c.GetAuthor().GetLogin()]; !ok {
-				list[c.GetAuthor().GetLogin()] = report.MakeAuthor(c.GetAuthor().GetLogin())
+			login := c.GetAuthor().GetLogin()
+			if _, ok := list[login]; !ok {
+				list[login] = report.MakeAuthor(login)
 			}
 
-			// add commit to the list
-			list[c.GetAuthor().GetLogin()].Stats.Commits++
+			list[login].Stats.Commits++
 			if !*c.GetCommit().GetVerification().Verified {
-				list[c.GetAuthor().GetLogin()].Stats.UnverifiedCommits++
+				list[login].Stats.UnverifiedCommits++
 			}
 
 			totalCommitCounter++
 		}
 
-		// check if we are done
 		if len(p) < pageSize {
 			break
 		}
@@ -88,49 +86,54 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		pageCounter++
 	}
 
-	r := &report.Report{
+	rpt := &report.Report{
 		Repo:         q.Repo,
 		AtCommit:     q.Commit,
 		GeneratedOn:  time.Now().UTC(),
 		TotalCommits: totalCommitCounter,
 	}
 
-	// convert map to slice
-	authors := make([]*report.Author, 0)
-	var wg sync.WaitGroup
+	var mu sync.Mutex
+	authors := make([]*report.Author, 0, len(list))
+
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(maxConcurrency)
 
 	for _, a := range list {
-		wg.Add(1)
-		go func(a *report.Author) {
-			defer wg.Done()
-			loadAuthor(ctx, client, a, q.Stats)
+		a := a
+		g.Go(func() error {
+			if err := loadAuthor(gctx, client, a, q.Stats); err != nil {
+				return err
+			}
+			mu.Lock()
 			authors = append(authors, a)
-		}(a)
+			mu.Unlock()
+			return nil
+		})
 	}
 
-	// wait for all to finish
-	wg.Wait()
+	if err := g.Wait(); err != nil {
+		return nil, fmt.Errorf("error loading authors: %w", err)
+	}
 
-	r.TotalContributors = int64(len(authors))
-	r.Contributors = authors
+	rpt.TotalContributors = int64(len(authors))
+	rpt.Contributors = authors
 
-	return r, nil
+	return rpt, nil
 }
 
 // loadAuthor loads the author details.
-func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool) {
+func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool) error {
 	if client == nil {
-		log.Error("client must be specified")
-		return
+		return fmt.Errorf("client must be specified")
 	}
 	if a == nil {
-		log.Error("author must be specified")
-		return
+		return fmt.Errorf("author must be specified")
 	}
 
 	u, r, err := client.Users.Get(ctx, a.Username)
 	if err != nil {
-		log.Errorf("error getting user %s: %v", a.Username, err)
+		return fmt.Errorf("error getting user %s: %w", a.Username, err)
 	}
 
 	log.WithFields(log.Fields{
@@ -141,7 +144,6 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 		"rate_remaining": r.Rate.Remaining,
 	}).Debug("user")
 
-	// optional fields
 	a.Stats.Suspended = u.SuspendedAt != nil
 	a.Stats.StrongAuth = u.GetTwoFactorAuthentication()
 	a.Stats.CommitsVerified = a.Stats.UnverifiedCommits == 0
@@ -152,25 +154,26 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 
 	dc := u.GetCreatedAt().Time
 	a.Stats.AgeDays = int64(math.Ceil(time.Now().UTC().Sub(dc).Hours() / hoursInDay))
-	a.Context["created"] = dc.Format(time.RFC3339)
+	a.Context.Created = dc.Format(time.RFC3339)
 
 	if u.Name != nil {
-		a.Context["name"] = u.GetName()
+		a.Context.Name = u.GetName()
 	}
 
 	if u.Email != nil {
-		a.Context["email"] = u.GetEmail()
+		a.Context.Email = u.GetEmail()
 	}
 
 	if u.Company != nil {
-		a.Context["company"] = u.GetCompany()
+		a.Context.Company = u.GetCompany()
 	}
 
 	calculateReputation(a)
 
-	// remove stats if not requested
 	if !stats {
 		a.Stats = nil
 		a.Context = nil
 	}
+
+	return nil
 }

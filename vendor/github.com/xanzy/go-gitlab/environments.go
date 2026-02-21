@@ -34,16 +34,20 @@ type EnvironmentsService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/environments.html
 type Environment struct {
-	ID             int         `json:"id"`
-	Name           string      `json:"name"`
-	Slug           string      `json:"slug"`
-	State          string      `json:"state"`
-	Tier           string      `json:"tier"`
-	ExternalURL    string      `json:"external_url"`
-	Project        *Project    `json:"project"`
-	CreatedAt      *time.Time  `json:"created_at"`
-	UpdatedAt      *time.Time  `json:"updated_at"`
-	LastDeployment *Deployment `json:"last_deployment"`
+	ID                  int         `json:"id"`
+	Name                string      `json:"name"`
+	Slug                string      `json:"slug"`
+	Description         string      `json:"description"`
+	State               string      `json:"state"`
+	Tier                string      `json:"tier"`
+	ExternalURL         string      `json:"external_url"`
+	Project             *Project    `json:"project"`
+	CreatedAt           *time.Time  `json:"created_at"`
+	UpdatedAt           *time.Time  `json:"updated_at"`
+	LastDeployment      *Deployment `json:"last_deployment"`
+	ClusterAgent        *Agent      `json:"cluster_agent"`
+	KubernetesNamespace string      `json:"kubernetes_namespace"`
+	FluxResourcePath    string      `json:"flux_resource_path"`
 }
 
 func (env Environment) String() string {
@@ -117,9 +121,13 @@ func (s *EnvironmentsService) GetEnvironment(pid interface{}, environment int, o
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/environments.html#create-a-new-environment
 type CreateEnvironmentOptions struct {
-	Name        *string `url:"name,omitempty" json:"name,omitempty"`
-	ExternalURL *string `url:"external_url,omitempty" json:"external_url,omitempty"`
-	Tier        *string `url:"tier,omitempty" json:"tier,omitempty"`
+	Name                *string `url:"name,omitempty" json:"name,omitempty"`
+	Description         *string `url:"description,omitempty" json:"description,omitempty"`
+	ExternalURL         *string `url:"external_url,omitempty" json:"external_url,omitempty"`
+	Tier                *string `url:"tier,omitempty" json:"tier,omitempty"`
+	ClusterAgentID      *int    `url:"cluster_agent_id,omitempty" json:"cluster_agent_id,omitempty"`
+	KubernetesNamespace *string `url:"kubernetes_namespace,omitempty" json:"kubernetes_namespace,omitempty"`
+	FluxResourcePath    *string `url:"flux_resource_path,omitempty" json:"flux_resource_path,omitempty"`
 }
 
 // CreateEnvironment adds an environment to a project. This is an idempotent
@@ -155,9 +163,13 @@ func (s *EnvironmentsService) CreateEnvironment(pid interface{}, opt *CreateEnvi
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/environments.html#update-an-existing-environment
 type EditEnvironmentOptions struct {
-	Name        *string `url:"name,omitempty" json:"name,omitempty"`
-	ExternalURL *string `url:"external_url,omitempty" json:"external_url,omitempty"`
-	Tier        *string `url:"tier,omitempty" json:"tier,omitempty"`
+	Name                *string `url:"name,omitempty" json:"name,omitempty"`
+	Description         *string `url:"description,omitempty" json:"description,omitempty"`
+	ExternalURL         *string `url:"external_url,omitempty" json:"external_url,omitempty"`
+	Tier                *string `url:"tier,omitempty" json:"tier,omitempty"`
+	ClusterAgentID      *int    `url:"cluster_agent_id,omitempty" json:"cluster_agent_id,omitempty"`
+	KubernetesNamespace *string `url:"kubernetes_namespace,omitempty" json:"kubernetes_namespace,omitempty"`
+	FluxResourcePath    *string `url:"flux_resource_path,omitempty" json:"flux_resource_path,omitempty"`
 }
 
 // EditEnvironment updates a project team environment to a specified access level..
@@ -204,18 +216,26 @@ func (s *EnvironmentsService) DeleteEnvironment(pid interface{}, environment int
 	return s.client.Do(req, nil)
 }
 
-// StopEnvironment stop an environment from a project team.
+// StopEnvironmentOptions represents the available StopEnvironment() options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/environments.html#stop-an-environment
-func (s *EnvironmentsService) StopEnvironment(pid interface{}, environmentID int, options ...RequestOptionFunc) (*Environment, *Response, error) {
+type StopEnvironmentOptions struct {
+	Force *bool `url:"force,omitempty" json:"force,omitempty"`
+}
+
+// StopEnvironment stops an environment within a specific project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/environments.html#stop-an-environment
+func (s *EnvironmentsService) StopEnvironment(pid interface{}, environmentID int, opt *StopEnvironmentOptions, options ...RequestOptionFunc) (*Environment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/environments/%d/stop", PathEscape(project), environmentID)
 
-	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

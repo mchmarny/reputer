@@ -8,17 +8,17 @@ import (
 func MakeAuthor(username string) *Author {
 	return &Author{
 		Username: username,
-		Context:  make(map[string]interface{}),
+		Context:  &AuthorContext{},
 		Stats:    &Stats{},
 	}
 }
 
 // Author represents a commit author.
 type Author struct {
-	Username   string                 `json:"username"`
-	Reputation float64                `json:"reputation"`
-	Context    map[string]interface{} `json:"context,omitempty"`
-	Stats      *Stats                 `json:"stats,omitempty"`
+	Username   string         `json:"username"`
+	Reputation float64        `json:"reputation"`
+	Context    *AuthorContext `json:"context,omitempty"`
+	Stats      *Stats         `json:"stats,omitempty"`
 }
 
 func (a *Author) String() string {
@@ -26,6 +26,14 @@ func (a *Author) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("%v", *a)
+}
+
+// AuthorContext holds optional author metadata.
+type AuthorContext struct {
+	Created string `json:"created,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Email   string `json:"email,omitempty"`
+	Company string `json:"company,omitempty"`
 }
 
 // Stats represents a set of statistics for an author.

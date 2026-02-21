@@ -3,11 +3,12 @@ package reputer
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/mchmarny/reputer/pkg/provider"
 	"github.com/mchmarny/reputer/pkg/report"
-	"github.com/pkg/errors"
 )
 
 // ListCommitAuthors returns a list of authors for the given repo and commit.
@@ -17,30 +18,30 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error
 	}
 
 	if err := opt.Validate(); err != nil {
-		return errors.Wrap(err, "invalid options")
+		return fmt.Errorf("invalid options: %w", err)
 	}
 
 	q, err := report.MakeQuery(opt.Repo, opt.Commit, opt.Stats)
 	if err != nil {
-		return errors.Wrapf(err, "error creating query for %s", opt)
+		return fmt.Errorf("error creating query for %s: %w", opt, err)
 	}
 
 	r, err := provider.GetAuthors(ctx, *q)
 	if err != nil {
-		return errors.Wrapf(err, "error listing authors for %s", opt)
+		return fmt.Errorf("error listing authors for %s: %w", opt, err)
 	}
 
 	f := os.Stdout
 	if opt.File != "" {
 		f, err = os.Create(opt.File)
 		if err != nil {
-			return errors.Wrapf(err, "error creating file %s", opt.File)
+			return fmt.Errorf("error creating file %s: %w", opt.File, err)
 		}
 		defer f.Close()
 	}
 
 	if err := json.NewEncoder(f).Encode(r); err != nil {
-		return errors.Wrapf(err, "error encoding authors for %s", opt)
+		return fmt.Errorf("error encoding authors for %s: %w", opt, err)
 	}
 
 	return nil

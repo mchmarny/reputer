@@ -1,8 +1,7 @@
 package gitlab
 
 import (
-	"math"
-
+	"github.com/mchmarny/reputer/pkg/report"
 	lab "github.com/xanzy/go-gitlab"
 )
 
@@ -23,14 +22,5 @@ func calculateReputation(s *lab.CommitStats) float64 {
 		rep += deletionWeight
 	}
 
-	return toFixed(rep, 2)
-}
-
-func round(num float64) int {
-	return int(num + math.Copysign(0.5, num))
-}
-
-func toFixed(num float64, precision int) float64 {
-	output := math.Pow(10, float64(precision))
-	return float64(round(num*output)) / output
+	return report.ToFixed(rep, 2)
 }

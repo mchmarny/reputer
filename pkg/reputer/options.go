@@ -1,9 +1,8 @@
 package reputer
 
 import (
+	"errors"
 	"fmt"
-
-	"github.com/pkg/errors"
 )
 
 type ListCommitAuthorsOptions struct {

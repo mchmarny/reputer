@@ -8,12 +8,12 @@ info: ## Prints all variables
 	@echo "version:  $(VERSION)"
 		
 .PHONY: tidy
-tidy: ## Updates the go modules and vendors all dependancies 
+tidy: ## Updates the go modules and vendors all dependencies
 	go mod tidy
 	go mod vendor
 
 .PHONY: upgrade
-upgrade: ## Upgrades all dependancies 
+upgrade: ## Upgrades all dependencies
 	go get -d -u ./...
 	go mod tidy
 	go mod vendor
@@ -26,7 +26,7 @@ test: tidy ## Runs unit tests
 lint: lint-go lint-yaml ## Lints both Go and YAML files
 	@echo "Completed Go and YAML lints"
 
-.PHONY: lint
+.PHONY: lint-go
 lint-go: ## Lints the entire project using Go
 	golangci-lint -c .golangci.yaml run
 
@@ -47,7 +47,7 @@ snapshot: test lint ## Runs test, lint before building snapshot distributables
 	GITLAB_TOKEN="" goreleaser release --snapshot --clean --timeout 10m0s
 
 .PHONY: vulncheck
-vulncheck: ## Checks for soource vulnerabilities
+vulncheck: ## Checks for source vulnerabilities
 	govulncheck -test ./...
 
 .PHONY: tag

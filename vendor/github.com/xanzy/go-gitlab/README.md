@@ -1,4 +1,25 @@
-# go-gitlab
+# (deprecated) go-gitlab (migrated to https://gitlab.com/gitlab-org/api/client-go)
+
+🚧 **Project moved to https://gitlab.com/gitlab-org/api/client-go** 🚧
+
+This package, `github.com/xanzy/go-gitlab`, has been moved to
+[`gitlab.com/gitlab-org/api/client-go`](https://gitlab.com/gitlab-org/api/client-go).
+
+The project will continue to be a primarily community-maintained project,
+more about it [here](https://gitlab.com/gitlab-org/client.go/-/blob/main/README.md#maintenance).
+
+**References**:
+
+- [GitLab Project](https://gitlab.com/gitlab-org/api/client-go)
+- [Issue Tracker](https://gitlab.com/gitlab-org/api/client-go/-/issues)
+
+## Migration Steps
+
+- Replace `github.com/xanzy/go-gitlab` with `gitlab.com/gitlab-org/api/client-go` in your code base.
+- Profit 🎉
+- *(the code is fully backwards-compatible, no breaking changes are expected)*
+
+<details><summary>Former README contents</summary>
 
 A GitLab API client enabling Go programs to interact with GitLab in a simple and uniform way
 
@@ -6,6 +27,7 @@ A GitLab API client enabling Go programs to interact with GitLab in a simple and
 [![Sourcegraph](https://sourcegraph.com/github.com/xanzy/go-gitlab/-/badge.svg)](https://sourcegraph.com/github.com/xanzy/go-gitlab?badge)
 [![GoDoc](https://godoc.org/github.com/xanzy/go-gitlab?status.svg)](https://godoc.org/github.com/xanzy/go-gitlab)
 [![Go Report Card](https://goreportcard.com/badge/github.com/xanzy/go-gitlab)](https://goreportcard.com/report/github.com/xanzy/go-gitlab)
+[![Coverage](https://github.com/xanzy/go-gitlab/wiki/coverage.svg)](https://raw.githack.com/wiki/xanzy/go-gitlab/coverage.html)
 
 ## NOTE
 
@@ -25,6 +47,7 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Commits
 - [x] Container Registry
 - [x] Custom Attributes
+- [x] Dependency List Export
 - [x] Deploy Keys
 - [x] Deployments
 - [x] Discussions (threaded comments)
@@ -74,6 +97,7 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Project Import/export
 - [x] Project Members
 - [x] Project Milestones
+- [x] Project Repository Storage Moves
 - [x] Project Snippets
 - [x] Project Vulnerabilities
 - [x] Project-Level Variables
@@ -132,7 +156,7 @@ to list all projects for user "svanharmelen":
 
 ```go
 git := gitlab.NewClient("yourtokengoeshere")
-opt := &gitlab.ListProjectsOptions{Search: gitlab.String("svanharmelen")}
+opt := &gitlab.ListProjectsOptions{Search: gitlab.Ptr("svanharmelen")}
 projects, _, err := git.Projects.ListProjects(opt)
 ```
 
@@ -158,11 +182,11 @@ func main() {
 
 	// Create new project
 	p := &gitlab.CreateProjectOptions{
-		Name:                 gitlab.String("My Project"),
-		Description:          gitlab.String("Just a test project to play with"),
-		MergeRequestsEnabled: gitlab.Bool(true),
-		SnippetsEnabled:      gitlab.Bool(true),
-		Visibility:           gitlab.Visibility(gitlab.PublicVisibility),
+		Name:                     gitlab.Ptr("My Project"),
+		Description:              gitlab.Ptr("Just a test project to play with"),
+		MergeRequestsAccessLevel: gitlab.Ptr(gitlab.EnabledAccessControl),
+		SnippetsAccessLevel:      gitlab.Ptr(gitlab.EnabledAccessControl),
+		Visibility:               gitlab.Ptr(gitlab.PublicVisibility),
 	}
 	project, _, err := git.Projects.CreateProject(p)
 	if err != nil {
@@ -171,10 +195,10 @@ func main() {
 
 	// Add a new snippet
 	s := &gitlab.CreateProjectSnippetOptions{
-		Title:           gitlab.String("Dummy Snippet"),
-		FileName:        gitlab.String("snippet.go"),
-		Content:         gitlab.String("package main...."),
-		Visibility:      gitlab.Visibility(gitlab.PublicVisibility),
+		Title:           gitlab.Ptr("Dummy Snippet"),
+		FileName:        gitlab.Ptr("snippet.go"),
+		Content:         gitlab.Ptr("package main...."),
+		Visibility:      gitlab.Ptr(gitlab.PublicVisibility),
 	}
 	_, _, err = git.ProjectSnippets.CreateSnippet(project.ID, s)
 	if err != nil {
@@ -197,6 +221,12 @@ For complete usage of go-gitlab, see the full [package docs](https://godoc.org/g
 
 Sander van Harmelen (<sander@vanharmelen.nl>)
 
+## Contributing
+
+Contributions are always welcome. For more information, check out the [contributing guide](https://github.com/xanzy/go-gitlab/blob/master/CONTRIBUTING.md)
+
 ## License
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>
+
+</details>

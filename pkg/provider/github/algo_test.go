@@ -87,12 +87,43 @@ func TestCalculateReputation(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:      "max score - all criteria met",
+			wantScore: 0.95,
+			author: &report.Author{
+				Username: "max-score",
+				Stats: &report.Stats{
+					StrongAuth:      true,
+					CommitsVerified: true,
+					AgeDays:         365,
+					Followers:       100,
+					Following:       10,
+					PublicRepos:     10,
+					PrivateRepos:    5,
+				},
+			},
+		},
+		{
+			name:      "nil author",
+			wantScore: 0,
+			author:    nil,
+		},
+		{
+			name:      "nil stats",
+			wantScore: 0,
+			author: &report.Author{
+				Username: "nil-stats",
+				Stats:    nil,
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			calculateReputation(tt.author)
-			assert.NotNil(t, tt.author)
+			if tt.author == nil {
+				return
+			}
 			assert.Equalf(t, tt.wantScore, tt.author.Reputation,
 				"%s - wrong reputation: got = %v, want %v",
 				tt.author.Username, tt.author.Reputation, tt.wantScore)

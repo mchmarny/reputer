@@ -41,8 +41,10 @@ type ProjectVariable struct {
 	VariableType     VariableTypeValue `json:"variable_type"`
 	Protected        bool              `json:"protected"`
 	Masked           bool              `json:"masked"`
+	Hidden           bool              `json:"hidden"`
 	Raw              bool              `json:"raw"`
 	EnvironmentScope string            `json:"environment_scope"`
+	Description      string            `json:"description"`
 }
 
 func (v ProjectVariable) String() string {
@@ -128,11 +130,13 @@ func (s *ProjectVariablesService) GetVariable(pid interface{}, key string, opt *
 type CreateProjectVariableOptions struct {
 	Key              *string            `url:"key,omitempty" json:"key,omitempty"`
 	Value            *string            `url:"value,omitempty" json:"value,omitempty"`
-	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
-	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
-	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
-	Raw              *bool              `url:"raw,omitempty" json:"raw,omitempty"`
+	Description      *string            `url:"description,omitempty" json:"description,omitempty"`
 	EnvironmentScope *string            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
+	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	MaskedAndHidden  *bool              `url:"masked_and_hidden,omitempty" json:"masked_and_hidden,omitempty"`
+	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
+	Raw              *bool              `url:"raw,omitempty" json:"raw,omitempty"`
+	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
 }
 
 // CreateVariable creates a new project variable.
@@ -167,12 +171,13 @@ func (s *ProjectVariablesService) CreateVariable(pid interface{}, opt *CreatePro
 // https://docs.gitlab.com/ee/api/project_level_variables.html#update-a-variable
 type UpdateProjectVariableOptions struct {
 	Value            *string            `url:"value,omitempty" json:"value,omitempty"`
-	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
-	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
-	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
-	Raw              *bool              `url:"raw,omitempty" json:"raw,omitempty"`
+	Description      *string            `url:"description,omitempty" json:"description,omitempty"`
 	EnvironmentScope *string            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
 	Filter           *VariableFilter    `url:"filter,omitempty" json:"filter,omitempty"`
+	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
+	Raw              *bool              `url:"raw,omitempty" json:"raw,omitempty"`
+	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
 }
 
 // UpdateVariable updates a project's variable.

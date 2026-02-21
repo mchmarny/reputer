@@ -1,10 +1,9 @@
 package report
 
 import (
+	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -17,12 +16,11 @@ func MakeQuery(repo, commit string, stats bool) (*Query, error) {
 		return nil, errors.New("repo must be specified")
 	}
 
-	// remove https:// if present
 	repo = strings.TrimPrefix(repo, "https://")
 
 	parts := strings.Split(repo, "/")
 	if len(parts) != repoNameParts {
-		return nil, errors.Errorf("invalid format: %s", repo)
+		return nil, fmt.Errorf("invalid format: %s", repo)
 	}
 
 	q := &Query{
@@ -43,7 +41,7 @@ type Query struct {
 	Repo string
 	// Commit is the commit to query (optional).
 	Commit string
-	// File is the file to write the report to (optional).
+	// Stats includes stats in the output (optional).
 	Stats bool
 
 	// Kind is the kind of repo (e.g. github.com, gitlab.com, etc.).
