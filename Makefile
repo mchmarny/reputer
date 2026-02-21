@@ -73,7 +73,10 @@ vulncheck: ## Checks for source vulnerabilities
 build: tidy ## Builds CLI binary
 	mkdir -p ./bin
 	CGO_ENABLED=0 go build -trimpath \
-	-ldflags="-w -s -X main.version=$(VERSION) \
+	-ldflags="-w -s \
+	-X github.com/mchmarny/reputer/pkg/cli.version=$(VERSION) \
+	-X github.com/mchmarny/reputer/pkg/cli.commit=$(COMMIT) \
+	-X 'github.com/mchmarny/reputer/pkg/cli.date=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)' \
 	-extldflags '-static'" -mod vendor \
 	-o bin/reputer cmd/main.go
 

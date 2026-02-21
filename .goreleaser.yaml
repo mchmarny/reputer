@@ -17,7 +17,11 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X main.version={{.Version}}
+      - >-
+        -s -w
+        -X github.com/mchmarny/reputer/pkg/cli.version={{.Version}}
+        -X github.com/mchmarny/reputer/pkg/cli.commit={{.Commit}}
+        -X github.com/mchmarny/reputer/pkg/cli.date={{.Date}}
     goos:
       - linux
       - darwin
