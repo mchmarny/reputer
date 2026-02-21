@@ -33,6 +33,17 @@ universal_binaries:
 checksum:
   name_template: 'checksums.txt'
 
+signs:
+  - cmd: cosign
+    signature: "${artifact}.bundle"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
 snapshot:
   version_template: "{{ .Tag }}-next"
 

@@ -2,66 +2,39 @@ name: release
 on:
   push:
     tags:
-    - 'v[0-9]+.[0-9]+.[0-9]+'  # Only build tag with semantic versioning format
+    - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
   contents: read
 
 jobs:
 
-  # ── shared ──────────────────────────────────────────────────────────
-
-  config:
-    permissions:
-      contents: read
-    uses: ./.github/workflows/config.yaml
-
   test:
-    needs:
-    - config
     uses: ./.github/workflows/test.yaml
     permissions:
       contents: read
-      security-events: write
-    with:
-      go_version: ${{ needs.config.outputs.go_version }}
-      scan_severity: ${{ needs.config.outputs.err_on_vul_sev }}
-      linter_version: ${{ needs.config.outputs.linter_version }}
-
-  # ── cli release (goreleaser) ────────────────────────────────────────
 
   release:
-    outputs:
-      hashes: ${{ steps.checksum.outputs.hashes }}
     runs-on: ubuntu-latest
     needs:
-    - config
     - test
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
+    - name: Checkout Code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        fetch-depth: 0
     - name: Setup Go
       uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
-        go-version: ${{ needs.config.outputs.go_version }}
-    - run: go version
-    - name: Cache Go Modules
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-    - name: Checkout Code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-    - name: Prune Git History
-      run: git fetch --prune --unshallow
+        go-version-file: go.mod
     - name: Install Syft
       uses: anchore/sbom-action/download-syft@28d71544de8eaf1b958d335707167c5f783590ad  # v0.22.2
-      with:
-        syft-version: ${{ needs.config.outputs.syft_version }}
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad  # v4.0.0
     - name: Build CLI
       uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a  # v6.4.0
       id: releaser
@@ -72,109 +45,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
-    - name: Gen Hashes
-      id: checksum
-      env:
-        ARTIFACTS: "${{ steps.releaser.outputs.artifacts }}"
-      run: |
-        set -euo pipefail
-        checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
-        echo "hashes=$(cat $checksum_file | base64 -w0)" >> $GITHUB_OUTPUT
-
-  cli-provenance:
-    needs:
-    - release
-    permissions:
-      actions: read    # To read the workflow path.
-      id-token: write  # To sign the provenance.
-      contents: write  # To add assets to a release.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
-    with:
-      base64-subjects: "${{ needs.release.outputs.hashes }}"
-      upload-assets: true
-      compile-generator: true
-
-  cli-verify:
-    env:
-      ATT_FILE_NAME: "multiple.intoto.jsonl"
-    needs:
-    - release
-    - cli-provenance
-    runs-on: ubuntu-latest
-    permissions: read-all
-    steps:
-      - name: Install SLSA Verifier
-        uses: slsa-framework/slsa-verifier/actions/installer@ea584f4502babc6f60d9bc799dbbb13c1caa9ee6  # v2.7.1
-      - name: Download Assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh -R "$GITHUB_REPOSITORY" release download "$GITHUB_REF_NAME" -p "reputer*"
-          gh -R "$GITHUB_REPOSITORY" release download "$GITHUB_REF_NAME" -p "$ATT_FILE_NAME"
-      - name: Verify Assets
-        env:
-          CHECKSUMS: ${{ needs.release.outputs.hashes }}
-        run: |
-          set -euo pipefail
-          checksums=$(echo "$CHECKSUMS" | base64 -d)
-          while read -r line; do
-              artifact=$(echo $line | cut -d ' ' -f2)
-              slsa-verifier verify-artifact --provenance-path "$ATT_FILE_NAME" \
-                                            --source-uri "github.com/$GITHUB_REPOSITORY" \
-                                            --source-tag "$GITHUB_REF_NAME" \
-                                            "$artifact"
-          done <<<"$checksums"
-
-  # ── image release (ko) ─────────────────────────────────────────────
-
-  build:
-    needs:
-    - config
-    - test
-    permissions:
-      contents: read
-      packages: write
-    uses: ./.github/workflows/build.yaml
-    with:
-      go_version: ${{ needs.config.outputs.go_version }}
-
-  sign:
-    needs:
-    - config
-    - build
-    permissions:
-      contents: read
-      actions: read
-      packages: write
-    uses: ./.github/workflows/sign.yaml
-    with:
-      cosign_version: ${{ needs.config.outputs.cosign_version }}
-      image_digest: ${{ needs.build.outputs.digest }}
-
-  scan:
-    needs:
-    - config
-    - build
-    permissions:
-      contents: read
-      actions: read
-      packages: read
-    uses: ./.github/workflows/scan.yaml
-    with:
-      image_digest: ${{ needs.build.outputs.digest }}
-      scan_severity: ${{ needs.config.outputs.err_on_vul_sev }}
-
-  img-slsa:
-    needs:
-    - config
-    - build
-    permissions:
-      contents: read
-      actions: read
-      packages: write
-      id-token: write
-    uses: ./.github/workflows/slsa.yaml
-    with:
-      image_digest: ${{ needs.build.outputs.digest }}
-      cosign_version: ${{ needs.config.outputs.cosign_version }}
+    - name: Attest Build Provenance
+      uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2  # v2.2.3
+      with:
+        subject-path: 'dist/checksums.txt'
