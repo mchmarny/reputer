@@ -155,6 +155,19 @@ func TestCalculateReputation(t *testing.T) {
 			wantScore:         1.00,
 		},
 		{
+			// org member only: 0.10 org + 0.10 recency(0 days) = 0.20
+			name: "org member only",
+			author: &report.Author{
+				Username: "org-only",
+				Stats: &report.Stats{
+					OrgMember: true,
+				},
+			},
+			totalCommits:      100,
+			totalContributors: 10,
+			wantScore:         0.20,
+		},
+		{
 			name: "2FA floor only",
 			author: &report.Author{
 				Username: "2fa-floor",
