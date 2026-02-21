@@ -62,7 +62,7 @@ lint-yaml: ## Lints YAML files with yamllint (brew install yamllint)
 	yamllint -c .yamllint.yaml $(YAML_FILES)
 
 .PHONY: test-coverage
-test-coverage: test ## Runs tests and enforces coverage threshold (COVERAGE=70)
+test-coverage: test ## Runs tests and enforces coverage threshold (default from .codecov.yaml)
 	@coverage=$$(go tool cover -func=cover.out | grep total | awk '{print $$3}' | sed 's/%//'); \
 	echo "Coverage: $$coverage% (threshold: $(COVERAGE)%)"; \
 	if [ $$(echo "$$coverage < $(COVERAGE)" | bc) -eq 1 ]; then \

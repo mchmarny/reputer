@@ -70,8 +70,20 @@ runs:
       ARTIFACT="reputer_${FILE_VERSION}_${OS}_${ARCH}"
       URL="https://github.com/mchmarny/reputer/releases/download/${VERSION}/${ARTIFACT}"
 
+      CHECKSUM_URL="https://github.com/mchmarny/reputer/releases/download/${VERSION}/checksums.txt"
+
       echo "Downloading reputer ${VERSION} from ${URL}"
       curl -sSL -o /usr/local/bin/reputer "${URL}"
+
+      echo "Verifying checksum"
+      curl -sSL -o /tmp/checksums.txt "${CHECKSUM_URL}"
+      EXPECTED=$(grep "${ARTIFACT}" /tmp/checksums.txt | head -1 | awk '{print $1}')
+      ACTUAL=$(sha256sum /usr/local/bin/reputer | awk '{print $1}')
+      if [[ "${ACTUAL}" != "${EXPECTED}" ]]; then
+        echo "::error::reputer checksum mismatch: expected ${EXPECTED}, got ${ACTUAL}"
+        exit 1
+      fi
+
       chmod +x /usr/local/bin/reputer
       reputer --version
 
