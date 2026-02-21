@@ -4,6 +4,10 @@ BRANCH     :=$(shell git rev-parse --abbrev-ref HEAD)
 GO_VERSION :=$(shell go env GOVERSION 2>/dev/null | sed 's/go//')
 GOLINT_VER :=$(shell golangci-lint --version 2>/dev/null | awk '{print $$4}' || echo "not installed")
 YAML_FILES :=$(shell find . ! -path "./vendor/*" -type f -regex ".*\.yaml" -print)
+COVERAGE   ?=$(shell awk '/^target:/{print $$2}' .codecov.yaml 2>/dev/null)
+ifeq ($(COVERAGE),)
+COVERAGE := 30
+endif
 
 all: help
 
@@ -31,7 +35,7 @@ tidy: ## Formats code and updates Go module dependencies
 
 .PHONY: upgrade
 upgrade: ## Upgrades all dependencies to latest versions
-	go get -d -u ./...
+	go get -u ./...
 	go mod tidy
 	go mod vendor
 
@@ -57,6 +61,16 @@ lint-go: ## Lints Go files with go vet and golangci-lint
 lint-yaml: ## Lints YAML files with yamllint (brew install yamllint)
 	yamllint -c .yamllint.yaml $(YAML_FILES)
 
+.PHONY: test-coverage
+test-coverage: test ## Runs tests and enforces coverage threshold (COVERAGE=70)
+	@coverage=$$(go tool cover -func=cover.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+	echo "Coverage: $$coverage% (threshold: $(COVERAGE)%)"; \
+	if [ $$(echo "$$coverage < $(COVERAGE)" | bc) -eq 1 ]; then \
+		echo "ERROR: Coverage $$coverage% is below threshold $(COVERAGE)%"; \
+		exit 1; \
+	fi; \
+	echo "Coverage check passed"
+
 .PHONY: test
 test: ## Runs unit tests with race detector and coverage
 	GOFLAGS="-mod=vendor" go test -count=1 -race -timeout=5m -covermode=atomic -coverprofile=cover.out ./...
@@ -64,6 +78,10 @@ test: ## Runs unit tests with race detector and coverage
 .PHONY: vulncheck
 vulncheck: ## Checks for source vulnerabilities
 	govulncheck -test ./...
+
+.PHONY: qualify
+qualify: test-coverage lint vulncheck ## Qualifies the codebase (test-coverage, lint, vulncheck)
+	@echo "Codebase qualification completed"
 
 # =============================================================================
 # Build & Release
