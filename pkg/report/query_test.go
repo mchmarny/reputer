@@ -41,6 +41,16 @@ func TestMakeQuery(t *testing.T) {
 			},
 		},
 		{
+			name:   "strips http prefix",
+			repo:   "http://github.com/owner/repo",
+			commit: "",
+			check: func(t *testing.T, q *Query) {
+				assert.Equal(t, "github.com", q.Kind)
+				assert.Equal(t, "owner", q.Owner)
+				assert.Equal(t, "repo", q.Name)
+			},
+		},
+		{
 			name:    "too few parts",
 			repo:    "github.com/owner",
 			wantErr: true,

@@ -17,6 +17,7 @@ func MakeQuery(repo, commit string, stats bool) (*Query, error) {
 	}
 
 	repo = strings.TrimPrefix(repo, "https://")
+	repo = strings.TrimPrefix(repo, "http://")
 
 	parts := strings.Split(repo, "/")
 	if len(parts) != repoNameParts {
