@@ -57,7 +57,17 @@ runs:
 
       # Strip leading v for artifact filename (goreleaser uses version without v)
       FILE_VERSION="${VERSION#v}"
-      ARTIFACT="reputer_${FILE_VERSION}_linux_amd64"
+
+      # Detect OS and architecture
+      OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+      RAW_ARCH="$(uname -m)"
+      case "${RAW_ARCH}" in
+        x86_64)        ARCH="amd64" ;;
+        aarch64|arm64) ARCH="arm64" ;;
+        *)             echo "Unsupported architecture: ${RAW_ARCH}" >&2; exit 1 ;;
+      esac
+
+      ARTIFACT="reputer_${FILE_VERSION}_${OS}_${ARCH}"
       URL="https://github.com/mchmarny/reputer/releases/download/${VERSION}/${ARTIFACT}"
 
       echo "Downloading reputer ${VERSION} from ${URL}"
