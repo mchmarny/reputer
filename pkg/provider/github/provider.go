@@ -76,6 +76,17 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 				list[login].Stats.UnverifiedCommits++
 			}
 
+			// Track most recent commit date per author (commits arrive newest-first).
+			if list[login].Stats.LastCommitDays == 0 {
+				if cd := c.GetCommit().GetCommitter().GetDate(); !cd.IsZero() {
+					days := int64(math.Ceil(time.Now().UTC().Sub(cd.Time).Hours() / hoursInDay))
+					if days < 0 {
+						days = 0
+					}
+					list[login].Stats.LastCommitDays = days
+				}
+			}
+
 			totalCommitCounter++
 		}
 
@@ -93,6 +104,18 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		TotalCommits: totalCommitCounter,
 	}
 
+	rpt.Meta = &report.Meta{
+		ModelVersion: report.ModelVersion,
+		Categories: []report.CategoryWeight{
+			{Name: "code_provenance", Weight: 0.35},
+			{Name: "identity", Weight: 0.25},
+			{Name: "engagement", Weight: 0.25},
+			{Name: "community", Weight: 0.15},
+		},
+	}
+
+	totalContributors := len(list)
+
 	var mu sync.Mutex
 	authors := make([]*report.Author, 0, len(list))
 
@@ -102,7 +125,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 	for _, a := range list {
 		a := a
 		g.Go(func() error {
-			if err := loadAuthor(gctx, client, a, q.Stats); err != nil {
+			if err := loadAuthor(gctx, client, a, q.Stats, totalCommitCounter, totalContributors); err != nil {
 				return err
 			}
 			mu.Lock()
@@ -116,14 +139,14 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		return nil, fmt.Errorf("error loading authors: %w", err)
 	}
 
-	rpt.TotalContributors = int64(len(authors))
+	rpt.TotalContributors = int64(totalContributors)
 	rpt.Contributors = authors
 
 	return rpt, nil
 }
 
 // loadAuthor loads the author details.
-func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool) error {
+func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool, totalCommits int64, totalContributors int) error {
 	if client == nil {
 		return fmt.Errorf("client must be specified")
 	}
@@ -168,7 +191,7 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 		a.Context.Company = u.GetCompany()
 	}
 
-	calculateReputation(a, 0, 0)
+	calculateReputation(a, totalCommits, totalContributors)
 
 	if !stats {
 		a.Stats = nil
