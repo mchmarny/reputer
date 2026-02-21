@@ -14,6 +14,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestCategoryWeightsSum(t *testing.T) {
+	sum := CategoryProvenanceWeight + CategoryIdentityWeight + CategoryEngagementWeight + CategoryCommunityWeight
+	assert.InDelta(t, 1.0, sum, 0.001, "category weights must sum to 1.0, got %f", sum)
+}
+
 func TestClampedRatio(t *testing.T) {
 	tests := []struct {
 		name string

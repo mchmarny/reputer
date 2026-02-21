@@ -31,6 +31,14 @@ const (
 	noTFAMaxDiscount      = 0.5
 )
 
+// Exported category weights derived from signal constants above.
+var (
+	CategoryProvenanceWeight = provenanceWeight
+	CategoryIdentityWeight   = ageWeight + orgMemberWeight
+	CategoryEngagementWeight = proportionWeight + recencyWeight
+	CategoryCommunityWeight  = followerWeight + repoCountWeight
+)
+
 // clampedRatio maps val linearly into [0.0, 1.0] with ceil as the saturation point.
 func clampedRatio(val, ceil float64) float64 {
 	if ceil <= 0 || val <= 0 {

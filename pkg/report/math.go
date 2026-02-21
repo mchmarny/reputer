@@ -4,7 +4,7 @@ import "math"
 
 // Round rounds a float64 to the nearest integer.
 func Round(num float64) int {
-	return int(num + math.Copysign(0.5, num))
+	return int(math.Round(num))
 }
 
 // ToFixed truncates a float64 to the given precision.

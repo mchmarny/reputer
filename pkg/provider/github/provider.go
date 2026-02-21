@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	hub "github.com/google/go-github/v52/github"
+	hub "github.com/google/go-github/v72/github"
 	"github.com/mchmarny/reputer/pkg/report"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -50,10 +50,11 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error listing commits for %s/%s: %w", q.Owner, q.Name, err)
 		}
+		waitForRateLimit(r)
 
 		log.WithFields(log.Fields{
 			"page_num":       opts.Page,
-			"size_size":      opts.PerPage,
+			"page_size":      opts.PerPage,
 			"page_next":      r.NextPage,
 			"page_last":      r.LastPage,
 			"status":         r.StatusCode,
@@ -72,7 +73,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 			}
 
 			list[login].Stats.Commits++
-			if !*c.GetCommit().GetVerification().Verified {
+			if v := c.GetCommit().GetVerification(); v == nil || v.Verified == nil || !*v.Verified {
 				list[login].Stats.UnverifiedCommits++
 			}
 
@@ -107,10 +108,10 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 	rpt.Meta = &report.Meta{
 		ModelVersion: report.ModelVersion,
 		Categories: []report.CategoryWeight{
-			{Name: "code_provenance", Weight: 0.35},
-			{Name: "identity", Weight: 0.25},
-			{Name: "engagement", Weight: 0.25},
-			{Name: "community", Weight: 0.15},
+			{Name: "code_provenance", Weight: CategoryProvenanceWeight},
+			{Name: "identity", Weight: CategoryIdentityWeight},
+			{Name: "engagement", Weight: CategoryEngagementWeight},
+			{Name: "community", Weight: CategoryCommunityWeight},
 		},
 	}
 
@@ -123,7 +124,6 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 	g.SetLimit(maxConcurrency)
 
 	for _, a := range list {
-		a := a
 		g.Go(func() error {
 			if err := loadAuthor(gctx, client, a, q.Stats, totalCommitCounter, totalContributors, q.Owner); err != nil {
 				return err
@@ -158,6 +158,7 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 	if err != nil {
 		return fmt.Errorf("error getting user %s: %w", a.Username, err)
 	}
+	waitForRateLimit(r)
 
 	log.WithFields(log.Fields{
 		"page_next":      r.NextPage,
@@ -169,7 +170,7 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 
 	a.Stats.Suspended = u.SuspendedAt != nil
 	a.Stats.StrongAuth = u.GetTwoFactorAuthentication()
-	a.Stats.CommitsVerified = a.Stats.UnverifiedCommits == 0
+	a.Stats.CommitsVerified = a.Stats.UnverifiedCommits == 0 // not used by scoring; exposed in JSON for display
 	a.Stats.Followers = int64(u.GetFollowers())
 	a.Stats.Following = int64(u.GetFollowing())
 	a.Stats.PublicRepos = int64(u.GetPublicRepos())
@@ -192,7 +193,8 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 	}
 
 	// Org membership check -- graceful degradation on error.
-	isMember, _, memberErr := client.Organizations.IsMember(ctx, owner, a.Username)
+	isMember, orgResp, memberErr := client.Organizations.IsMember(ctx, owner, a.Username)
+	waitForRateLimit(orgResp)
 	if memberErr != nil {
 		log.Debugf("org membership check [%s/%s]: %v", owner, a.Username, memberErr)
 	} else {
