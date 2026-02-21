@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 5m
 
@@ -5,11 +7,8 @@ linters:
   enable:
   - asciicheck
   - unused
-  # - depguard
   - errorlint
-  - gofmt
   - gosec
-  - goimports
   - importas
   - prealloc
   - revive
@@ -19,6 +18,11 @@ linters:
   - unconvert
   - unparam
   - whitespace
+
+formatters:
+  enable:
+  - gofmt
+  - goimports
 
 issues:
   exclude-rules:

@@ -24,12 +24,12 @@ jobs:
       security-events: write
     steps:
     - name: Setup Go
-      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753  # v4.0.1
+      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
         go-version: ${{ inputs.go_version }}
     - run: go version
     - name: Cache Go Modules
-      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8  # v3.3.1
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
       with:
         path: |
           ~/go/pkg/mod
@@ -38,17 +38,17 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Checkout Code
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # v3.4.0
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
     - name: Tidy Modules
       run: |
         make tidy
     - name: Install Grype
-      uses: anchore/scan-action/download-grype@4be3c24559b430723e51858969965e163b196957  # v3.3.5
+      uses: anchore/scan-action/download-grype@7037fa011853d5a11690026fb85feee79f4c946c  # v7.3.2
     - name: Unit Test
       run: |
         make test
     - name: Parse Coverage
-      uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d  # v3.1.4
+      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de  # v5.5.2
       with:
         flags: unittests  # optional
 
@@ -58,12 +58,12 @@ jobs:
       security-events: write
     steps:
     - name: Setup Go
-      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753  # v4.0.1
+      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
-        go-version: ${{ inputs.go-version }}
+        go-version: ${{ inputs.go_version }}
     - run: go version
     - name: Cache Go Modules
-      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8  # v3.3.1
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
       with:
         path: |
           ~/go/pkg/mod
@@ -72,28 +72,28 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Checkout Code
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # v3.4.0
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
     - name: Tidy Modules
       run: |
         make tidy
     - name: Config Go Lint
       id: golangci_config
-      uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b  # v2.0
+      uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6  # v3.0.0
       with:
         files: .golangci.yaml
     - name: Lint Go
       if: steps.golangci_config.outputs.files_exists == 'true'
-      uses: golangci/golangci-lint-action@5f1fec7010f6ae3b84ea4f7b2129beb8639b564f  # v3.5.0
+      uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20  # v9.2.0
       with:
         version: ${{ inputs.linter_version }}
     - name: Config YAML Lint
       id: yamllint_config
-      uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b  # v2.0
+      uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6  # v3.0.0
       with:
         files: .yamllint
     - name: Lint YAML
       if: steps.yamllint_config.outputs.files_exists == 'true'
-      uses: karancode/yamllint-github-action@fdef6bc189425ecc84cc4543b2674566c0827053  # master
+      uses: karancode/yamllint-github-action@fdef6bc189425ecc84cc4543b2674566c0827053  # v2.1.1
       with:
         yamllint_config_filepath: .yamllint
 
@@ -103,9 +103,9 @@ jobs:
       security-events: write
     steps:
     - name: Checkout Code
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # v3.4.0
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
     - name: Scan Repo
-      uses: aquasecurity/trivy-action@0cd397afbfae6b60e8061fda662f3511aa5d054e  # v0.11.1
+      uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518  # 0.34.1
       with:
         scan-type: fs
         ignore-unfixed: true
@@ -115,6 +115,6 @@ jobs:
         severity: ${{ inputs.scan_severity }}
         exit-code: '1'
     - name: Upload Report
-      uses: github/codeql-action/upload-sarif@cdcdbb579706841c47f7063dda365e292e5cad7a  # v2.11.6
+      uses: github/codeql-action/upload-sarif@45580472a5bb82c4681c4ac726cfdb60060c2ee1  # v3
       with:
         sarif_file: trivy-results.sarif

@@ -23,7 +23,7 @@ jobs:
     steps:
 
     - name: Scan Image
-      uses: aquasecurity/trivy-action@0cd397afbfae6b60e8061fda662f3511aa5d054e  # 0.11.1
+      uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518  # 0.34.1
       with:
         scan-type: image
         security-checks: vuln

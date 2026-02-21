@@ -37,12 +37,12 @@ jobs:
       contents: write
     steps:
     - name: Setup Go
-      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753  # v4.0.1
+      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
         go-version: ${{ needs.config.outputs.go_version }}
     - run: go version
     - name: Cache Go Modules
-      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8  # v3.3.1
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
       with:
         path: |
           ~/.cache/go-build
@@ -51,15 +51,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Checkout Code
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # v3.5.3
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
     - name: Prune Git History
       run: git fetch --prune --unshallow
     - name: Install Syft
-      uses: anchore/sbom-action/download-syft@4d571ad1038a9cc29d676154ef265ab8f9027042  # v0.14.2
+      uses: anchore/sbom-action/download-syft@28d71544de8eaf1b958d335707167c5f783590ad  # v0.22.2
       with:
         version: ${{ needs.config.outputs.syft_version }}
     - name: Build CLI
-      uses: goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b  # v4.2.0
+      uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a  # v6.4.0
       id: releaser
       with:
         distribution: goreleaser
@@ -84,7 +84,7 @@ jobs:
       actions: read    # To read the workflow path.
       id-token: write  # To sign the provenance.
       contents: write  # To add assets to a release.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.7.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: "${{ needs.release.outputs.hashes }}"
       upload-assets: true
@@ -100,7 +100,7 @@ jobs:
     permissions: read-all
     steps:
       - name: Install SLSA Verifier
-        uses: slsa-framework/slsa-verifier/actions/installer@c9abffe4d2ab2ffa0b2ea9b2582b84164f390adc  # v2.3.0
+        uses: slsa-framework/slsa-verifier/actions/installer@ea584f4502babc6f60d9bc799dbbb13c1caa9ee6  # v2.7.1
       - name: Download Assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

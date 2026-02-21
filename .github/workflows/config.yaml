@@ -23,11 +23,11 @@ jobs:
 
     env:
       # Set the following variables to your desired values
-      GO_VERSION: ^1.20.5
-      COSIGN_VERSION: v2.0.1
+      GO_VERSION: ^1.24
+      COSIGN_VERSION: v2.4.1
       ERR_VULN_SEV: 'CRITICAL,HIGH,MEDIUM'
-      LINTER_VERSION: v1.53.2
-      SYFT_VERSION: v0.14.2
+      LINTER_VERSION: v2.10.1
+      SYFT_VERSION: v0.22.2
 
     outputs:
       go_version: ${{ steps.conf.outputs.go_version }}
