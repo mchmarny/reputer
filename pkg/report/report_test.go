@@ -22,7 +22,7 @@ func TestSortAuthors(t *testing.T) {
 	assert.Equal(t, "charlie", r.Contributors[2].Username)
 }
 
-func TestSortAuthorsNilContributors(t *testing.T) {
+func TestSortAuthorsNilContributors(_ *testing.T) {
 	r := &Report{Contributors: nil}
 	r.SortAuthors() // should not panic
 }

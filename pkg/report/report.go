@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Report is the top-level output for a reputation query.
 type Report struct {
 	Repo              string    `json:"repo,omitempty"`
 	AtCommit          string    `json:"at_commit,omitempty"`

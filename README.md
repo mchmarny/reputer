@@ -1,10 +1,10 @@
 # reputer
 
-Reporting tool to calculate contributor reputation based on configurable algorithm for each provider. Currently supported providers: `github` and `gitlab`.  
+Reporting tool to calculate contributor reputation based on graduated scoring algorithm for each provider. Currently supported providers: `github` and `gitlab`.
 
-> Note: `reputation` is a value between 0 (no/low reputation) to 1.0 (high reputation). The algorithms used in this repo currently consider only the provider information about each contributor so the `reputation` is more a identity confidence score until additional/external data sources are introduced. 
+> Note: `reputation` is a value between 0 (no/low reputation) to 1.0 (high reputation). Each signal (account age, repos, commit verification, follower ratio, 2FA) contributes proportionally rather than as binary pass/fail. The algorithms consider only provider information about each contributor so the `reputation` is more an identity confidence score until additional/external data sources are introduced.
 
-## install 
+## install
 
 ```shell
 brew tap mchmarny/reputer
@@ -19,15 +19,14 @@ reputer [flags]
 
 Supported flags:
 
-* `--commit` - Commit at which to end the report (optional, inclusive)
-* `--file` - Write output to file at this path (optional, stdout if not specified)
 * `--repo` - Repo URI (required, e.g. github.com/owner/repo)
-* `--stats` - Includes author commit stats (optional, false)
-* `--version` - Prints version only (optional, false)
-* `--debug` - Turns logging verbose (optional, false)
-```
+* `--commit` - Commit at which to end the report (optional, inclusive)
+* `--stats` - Includes stats used to calculate reputation (optional)
+* `--file` - Write output to file at this path (optional, stdout if not specified)
+* `--debug` - Turns logging verbose (optional)
+* `--version` - Prints version only (optional)
 
-example: 
+example:
 
 ```shell
 reputer \
@@ -35,7 +34,7 @@ reputer \
     --commit 3c239456ef63b45322b7ccdceb7f835c01fba862
 ```
 
-results in: 
+results in:
 
 ```json
 {
@@ -46,7 +45,7 @@ results in:
   "contributors": [
     {
       "username": "mchmarny",
-      "reputation": 0.95,
+      "reputation": 1.0
     },
     ...
   ]
@@ -64,7 +63,7 @@ Same command with `--stats`
   "contributors": [
     {
       "username": "mchmarny",
-      "reputation": 0.95,
+      "reputation": 1.0,
       "context": {
         "company": "@Company",
         "created": "2010-01-04T00:19:57Z",

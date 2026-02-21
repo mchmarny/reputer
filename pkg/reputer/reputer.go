@@ -1,3 +1,4 @@
+// Package reputer orchestrates reputation report generation.
 package reputer
 
 import (
@@ -37,7 +38,7 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error
 		if err != nil {
 			return fmt.Errorf("error creating file %s: %w", opt.File, err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 	}
 
 	if err := json.NewEncoder(f).Encode(r); err != nil {

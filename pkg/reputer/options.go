@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// ListCommitAuthorsOptions configures a reputation report query.
 type ListCommitAuthorsOptions struct {
 	Repo   string
 	Commit string
@@ -12,6 +13,7 @@ type ListCommitAuthorsOptions struct {
 	File   string
 }
 
+// Validate checks that required fields are populated.
 func (l *ListCommitAuthorsOptions) Validate() error {
 	if l == nil {
 		return errors.New("options must be populated")
