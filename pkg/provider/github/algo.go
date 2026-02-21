@@ -2,6 +2,8 @@
 package github
 
 import (
+	"math"
+
 	"github.com/mchmarny/reputer/pkg/report"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,6 +33,31 @@ func clampedRatio(val, ceil float64) float64 {
 		return 1
 	}
 	return val / ceil
+}
+
+// logCurve maps val into [0.0, 1.0] with logarithmic diminishing returns.
+// f(v, c) = log(1+v) / log(1+c), clamped to [0, 1].
+func logCurve(val, ceil float64) float64 {
+	if ceil <= 0 || val <= 0 {
+		return 0
+	}
+	r := math.Log(1+val) / math.Log(1+ceil)
+	if r >= 1 {
+		return 1
+	}
+	return r
+}
+
+// expDecay models freshness with a half-life.
+// f(v, h) = exp(-v * ln2 / h). Returns 1.0 at v=0, 0.5 at v=halfLife.
+func expDecay(val, halfLife float64) float64 {
+	if halfLife <= 0 {
+		return 0
+	}
+	if val <= 0 {
+		return 1
+	}
+	return math.Exp(-val * math.Ln2 / halfLife)
 }
 
 // calculateReputation calculates the reputation score for the given author
