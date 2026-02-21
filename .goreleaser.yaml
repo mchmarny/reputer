@@ -45,11 +45,13 @@ signs:
       - "--bundle=${signature}"
       - "${artifact}"
       - "--yes"
-    artifacts: checksum
+    artifacts: all
     output: true
 
 snapshot:
   version_template: "{{ .Tag }}-next"
+
+report_sizes: true
 
 release:
   github:
@@ -95,6 +97,7 @@ nfpms:
     maintainer: Mark Chmarny <mchmarny@users.noreply.github.com>
     license: Apache 2.0
     vendor: mchmarny
+    section: utils
     formats:
       - deb
       - rpm
