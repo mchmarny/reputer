@@ -8,7 +8,7 @@ Reporting tool to calculate contributor reputation based on graduated scoring al
 
 ```shell
 brew tap mchmarny/reputer
-brew install mchmarny/reputer/reputer
+brew install reputer
 ```
 
 ## usage
