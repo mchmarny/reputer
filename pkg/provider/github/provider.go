@@ -125,7 +125,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 	for _, a := range list {
 		a := a
 		g.Go(func() error {
-			if err := loadAuthor(gctx, client, a, q.Stats, totalCommitCounter, totalContributors); err != nil {
+			if err := loadAuthor(gctx, client, a, q.Stats, totalCommitCounter, totalContributors, q.Owner); err != nil {
 				return err
 			}
 			mu.Lock()
@@ -146,7 +146,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 }
 
 // loadAuthor loads the author details.
-func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool, totalCommits int64, totalContributors int) error {
+func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool, totalCommits int64, totalContributors int, owner string) error {
 	if client == nil {
 		return fmt.Errorf("client must be specified")
 	}
@@ -189,6 +189,14 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 
 	if u.Company != nil {
 		a.Context.Company = u.GetCompany()
+	}
+
+	// Org membership check -- graceful degradation on error.
+	isMember, _, memberErr := client.Organizations.IsMember(ctx, owner, a.Username)
+	if memberErr != nil {
+		log.Debugf("org membership check [%s/%s]: %v", owner, a.Username, memberErr)
+	} else {
+		a.Stats.OrgMember = isMember
 	}
 
 	calculateReputation(a, totalCommits, totalContributors)
