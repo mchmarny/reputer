@@ -54,13 +54,13 @@ jobs:
     - name: Install reputer
       if: inputs.include-stats
       env:
-        GH_TOKEN: ${{ github.token }}
         VERSION: ${{ inputs.reputer-version }}
       run: |
         set -euo pipefail
 
         if [ "${VERSION}" = "latest" ]; then
-          VERSION=$(gh release view --repo mchmarny/reputer --json tagName -q '.tagName')
+          VERSION=$(curl -sSL https://api.github.com/repos/mchmarny/reputer/releases/latest \
+            | jq -r '.tag_name')
         fi
 
         # Strip leading v for artifact filename (goreleaser uses version without v)
