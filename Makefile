@@ -1,4 +1,4 @@
-VERSION    :=$(shell cat .version)
+VERSION    :=$(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 COMMIT     :=$(shell git rev-parse --short HEAD)
 BRANCH     :=$(shell git rev-parse --abbrev-ref HEAD)
 GO_VERSION :=$(shell go env GOVERSION 2>/dev/null | sed 's/go//')
@@ -81,15 +81,17 @@ build: tidy ## Builds CLI binary
 snapshot: test lint ## Runs test, lint before building snapshot distributables
 	GITLAB_TOKEN="" goreleaser release --snapshot --clean --timeout 10m0s
 
-.PHONY: tag
-tag: ## Creates release tag
-	git tag -s -m "bump version" $(VERSION)
-	git push origin $(VERSION)
+.PHONY: bump-patch
+bump-patch: ## Bumps patch version (v1.2.3 → v1.2.4)
+	tools/bump patch
 
-.PHONY: tagless
-tagless: ## Deletes the current release tag and recreates it
-	git tag -d $(VERSION)
-	git push --delete origin $(VERSION)
+.PHONY: bump-minor
+bump-minor: ## Bumps minor version (v1.2.3 → v1.3.0)
+	tools/bump minor
+
+.PHONY: bump-major
+bump-major: ## Bumps major version (v1.2.3 → v2.0.0)
+	tools/bump major
 
 # =============================================================================
 # Cleanup
