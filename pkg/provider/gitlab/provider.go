@@ -3,12 +3,12 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/mchmarny/reputer/pkg/report"
-	log "github.com/sirupsen/logrus"
 	lab "gitlab.com/gitlab-org/api/client-go"
 )
 
@@ -19,13 +19,12 @@ const (
 
 // ListAuthors is a GitLab commit provider.
 func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
-	log.Warn("GitLab provider is a stub; reputation scores will be incomplete")
+	slog.Warn("GitLab provider is a stub; reputation scores will be incomplete")
 
-	log.WithFields(log.Fields{
-		"owner":  q.Owner,
-		"repo":   q.Repo,
-		"commit": q.Commit,
-	}).Debug("list authors")
+	slog.Debug("list authors",
+		"owner", q.Owner,
+		"repo", q.Repo,
+		"commit", q.Commit)
 
 	token := os.Getenv("GITLAB_TOKEN")
 	if token == "" {
@@ -58,16 +57,15 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 			return nil, fmt.Errorf("error listing commits for %s: %w", q.Repo, err)
 		}
 
-		log.WithFields(log.Fields{
-			"asked_page":  opts.Page,
-			"asked_size":  opts.PerPage,
-			"got_size":    r.ItemsPerPage,
-			"got_next":    r.NextPage,
-			"got_current": r.CurrentPage,
-			"got_status":  r.StatusCode,
-			"total_items": r.TotalItems,
-			"total_pages": r.TotalPages,
-		}).Debug("commit list")
+		slog.Debug("commit list", //nolint:gosec // G706: values are typed response metadata, not user input
+			"asked_page", opts.Page,
+			"asked_size", opts.PerPage,
+			"got_size", r.ItemsPerPage,
+			"got_next", r.NextPage,
+			"got_current", r.CurrentPage,
+			"got_status", r.StatusCode,
+			"total_items", r.TotalItems,
+			"total_pages", r.TotalPages)
 
 		for _, c := range p {
 			if _, ok := list[c.AuthorEmail]; !ok {

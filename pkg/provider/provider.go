@@ -3,12 +3,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/mchmarny/reputer/pkg/provider/github"
 	"github.com/mchmarny/reputer/pkg/provider/gitlab"
 	"github.com/mchmarny/reputer/pkg/report"
-	log "github.com/sirupsen/logrus"
 )
 
 var providers = map[string]CommitProvider{
@@ -39,8 +39,10 @@ func GetAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 
 	r.SortAuthors()
 
-	log.Debugf("listed %d commits from %d authors in %s",
-		r.TotalCommits, r.TotalContributors, time.Since(start))
+	slog.Debug("listed commits",
+		"commits", r.TotalCommits,
+		"authors", r.TotalContributors,
+		"duration", time.Since(start))
 
 	return r, nil
 }

@@ -3,13 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"sync"
 	"time"
 
 	hub "github.com/google/go-github/v72/github"
 	"github.com/mchmarny/reputer/pkg/report"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -21,12 +21,11 @@ const (
 
 // ListAuthors is a GitHub commit provider.
 func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
-	log.WithFields(log.Fields{
-		"owner":  q.Owner,
-		"repo":   q.Repo,
-		"commit": q.Commit,
-		"stats":  q.Stats,
-	}).Debug("list authors")
+	slog.Debug("list authors",
+		"owner", q.Owner,
+		"repo", q.Repo,
+		"commit", q.Commit,
+		"stats", q.Stats)
 
 	client, err := getClient()
 	if err != nil {
@@ -52,15 +51,14 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		}
 		waitForRateLimit(r)
 
-		log.WithFields(log.Fields{
-			"page_num":       opts.Page,
-			"page_size":      opts.PerPage,
-			"page_next":      r.NextPage,
-			"page_last":      r.LastPage,
-			"status":         r.StatusCode,
-			"rate_limit":     r.Rate.Limit,
-			"rate_remaining": r.Rate.Remaining,
-		}).Debug("commit list")
+		slog.Debug("commit list",
+			"page_num", opts.Page,
+			"page_size", opts.PerPage,
+			"page_next", r.NextPage,
+			"page_last", r.LastPage,
+			"status", r.StatusCode,
+			"rate_limit", r.Rate.Limit,
+			"rate_remaining", r.Rate.Remaining)
 
 		for _, c := range p {
 			if c.Author == nil {
@@ -160,13 +158,12 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 	}
 	waitForRateLimit(r)
 
-	log.WithFields(log.Fields{
-		"page_next":      r.NextPage,
-		"page_last":      r.LastPage,
-		"status":         r.StatusCode,
-		"rate_limit":     r.Rate.Limit,
-		"rate_remaining": r.Rate.Remaining,
-	}).Debug("user")
+	slog.Debug("user",
+		"page_next", r.NextPage,
+		"page_last", r.LastPage,
+		"status", r.StatusCode,
+		"rate_limit", r.Rate.Limit,
+		"rate_remaining", r.Rate.Remaining)
 
 	a.Stats.Suspended = u.SuspendedAt != nil
 	a.Stats.StrongAuth = u.GetTwoFactorAuthentication()
@@ -196,7 +193,7 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 	isMember, orgResp, memberErr := client.Organizations.IsMember(ctx, owner, a.Username)
 	waitForRateLimit(orgResp)
 	if memberErr != nil {
-		log.Debugf("org membership check [%s/%s]: %v", owner, a.Username, memberErr)
+		slog.Debug(fmt.Sprintf("org membership check [%s/%s]: %v", owner, a.Username, memberErr))
 	} else {
 		a.Stats.OrgMember = isMember
 	}

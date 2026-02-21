@@ -2,13 +2,13 @@ package github
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	hub "github.com/google/go-github/v72/github"
 	"github.com/gregjones/httpcache"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
@@ -53,10 +53,9 @@ func waitForRateLimit(r *hub.Response) {
 	if wait <= 0 {
 		return
 	}
-	log.WithFields(log.Fields{
-		"remaining": r.Rate.Remaining,
-		"reset_at":  resetAt.Format(time.RFC3339),
-		"wait_secs": int(wait.Seconds()),
-	}).Warn("rate limit low, waiting for reset")
+	slog.Warn("rate limit low, waiting for reset",
+		"remaining", r.Rate.Remaining,
+		"reset_at", resetAt.Format(time.RFC3339),
+		"wait_secs", int(wait.Seconds()))
 	time.Sleep(wait)
 }

@@ -4,10 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 
+	"github.com/mchmarny/reputer/pkg/logging"
 	"github.com/mchmarny/reputer/pkg/reporter"
-	log "github.com/sirupsen/logrus"
 )
 
 const usageMsg = `
@@ -54,19 +55,18 @@ func usage() {
 	os.Exit(1)
 }
 
+const appName = "reputer"
+
 func initLogging() {
-	log.SetOutput(os.Stderr)
-	log.SetLevel(log.InfoLevel)
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:          false,
-		ForceColors:            true,
-		DisableTimestamp:       true,
-		PadLevelText:           false,
-		DisableLevelTruncation: true,
-	})
+	logLevel := "info"
+	if isDebug {
+		logLevel = "debug"
+	}
 
 	if isDebug {
-		log.SetLevel(log.DebugLevel)
+		logging.SetDefaultLoggerWithLevel(appName, version, logLevel)
+	} else {
+		logging.SetDefaultCLILogger(logLevel)
 	}
 }
 
@@ -76,12 +76,12 @@ func Execute() {
 	initLogging()
 
 	if isVersion {
-		log.Infof("Version: %s (commit: %s, date: %s)", version, commit, date)
+		slog.Info(fmt.Sprintf("Version: %s (commit: %s, date: %s)", version, commit, date))
 		os.Exit(0)
 	}
 
 	if repo == "" {
-		log.Error("repo is required")
+		slog.Error("repo is required")
 		usage()
 	}
 

@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mchmarny/reputer/pkg/logging"
 	"github.com/mchmarny/reputer/pkg/report"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	log.SetLevel(log.DebugLevel)
+	logging.SetDefaultLoggerWithLevel("github-test", "test", "debug")
 	os.Exit(m.Run())
 }
 

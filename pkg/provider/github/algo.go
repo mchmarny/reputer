@@ -1,10 +1,11 @@
 package github
 
 import (
+	"fmt"
+	"log/slog"
 	"math"
 
 	"github.com/mchmarny/reputer/pkg/report"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -81,12 +82,12 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 
 	s := author.Stats
 	if s == nil {
-		log.Debugf("score [%s] - no stats", author.Username)
+		slog.Debug(fmt.Sprintf("score [%s] - no stats", author.Username))
 		return
 	}
 
 	if s.Suspended {
-		log.Debugf("score [%s] - suspended", author.Username)
+		slog.Debug(fmt.Sprintf("score [%s] - suspended", author.Username))
 		return
 	}
 
@@ -109,22 +110,22 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 		}
 
 		rep += rawScore * provenanceWeight
-		log.Debugf("provenance [%s]: %.4f (verified=%.2f, multiplier=%.2f)",
-			author.Username, rep, verifiedRatio, securityMultiplier)
+		slog.Debug(fmt.Sprintf("provenance [%s]: %.4f (verified=%.2f, multiplier=%.2f)",
+			author.Username, rep, verifiedRatio, securityMultiplier))
 	} else if s.StrongAuth {
 		rep += provenanceFloor * provenanceWeight
-		log.Debugf("provenance [%s]: %.4f (2FA floor, no commits)",
-			author.Username, rep)
+		slog.Debug(fmt.Sprintf("provenance [%s]: %.4f (2FA floor, no commits)",
+			author.Username, rep))
 	}
 
 	// --- Category 2: Identity Authenticity (0.25) ---
 	rep += logCurve(float64(s.AgeDays), ageCeilDays) * ageWeight
-	log.Debugf("age [%s]: %.4f (%d days)", author.Username, rep, s.AgeDays)
+	slog.Debug(fmt.Sprintf("age [%s]: %.4f (%d days)", author.Username, rep, s.AgeDays))
 
 	if s.OrgMember {
 		rep += orgMemberWeight
 	}
-	log.Debugf("org [%s]: %.4f (member=%v)", author.Username, rep, s.OrgMember)
+	slog.Debug(fmt.Sprintf("org [%s]: %.4f (member=%v)", author.Username, rep, s.OrgMember))
 
 	// --- Category 3: Engagement Depth (0.25) ---
 	if s.Commits > 0 && totalCommits > 0 {
@@ -138,8 +139,8 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 		confidence := math.Min(float64(totalCommits)/confThreshold, 1.0)
 
 		rep += clampedRatio(proportion, propCeil) * confidence * proportionWeight
-		log.Debugf("proportion [%s]: %.4f (prop=%.3f, ceil=%.3f, conf=%.3f)",
-			author.Username, rep, proportion, propCeil, confidence)
+		slog.Debug(fmt.Sprintf("proportion [%s]: %.4f (prop=%.3f, ceil=%.3f, conf=%.3f)",
+			author.Username, rep, proportion, propCeil, confidence))
 	}
 
 	numContrib := max(totalContributors, 1)
@@ -149,20 +150,20 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 	}
 	halfLife := baseHalfLifeDays * halfLifeMult
 	rep += expDecay(float64(s.LastCommitDays), halfLife) * recencyWeight
-	log.Debugf("recency [%s]: %.4f (%d days, halfLife=%.1f)",
-		author.Username, rep, s.LastCommitDays, halfLife)
+	slog.Debug(fmt.Sprintf("recency [%s]: %.4f (%d days, halfLife=%.1f)",
+		author.Username, rep, s.LastCommitDays, halfLife))
 
 	// --- Category 4: Community Standing (0.15) ---
 	if s.Following > 0 {
 		ratio := float64(s.Followers) / float64(s.Following)
 		rep += logCurve(ratio, followerRatioCeil) * followerWeight
-		log.Debugf("followers [%s]: %.4f (ratio=%.2f)", author.Username, rep, ratio)
+		slog.Debug(fmt.Sprintf("followers [%s]: %.4f (ratio=%.2f)", author.Username, rep, ratio))
 	}
 
 	totalRepos := float64(s.PublicRepos + s.PrivateRepos)
 	rep += logCurve(totalRepos, repoCountCeil) * repoCountWeight
-	log.Debugf("repos [%s]: %.4f (%d combined)", author.Username, rep, int64(totalRepos))
+	slog.Debug(fmt.Sprintf("repos [%s]: %.4f (%d combined)", author.Username, rep, int64(totalRepos)))
 
 	author.Reputation = report.ToFixed(rep, 2)
-	log.Debugf("reputation [%s]: %.2f", author.Username, author.Reputation)
+	slog.Debug(fmt.Sprintf("reputation [%s]: %.2f", author.Username, author.Reputation))
 }
