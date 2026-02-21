@@ -1,4 +1,4 @@
-name: release-cli
+name: release
 on:
   push:
     tags:
@@ -8,6 +8,8 @@ permissions:
   contents: read
 
 jobs:
+
+  # ── shared ──────────────────────────────────────────────────────────
 
   config:
     permissions:
@@ -25,6 +27,8 @@ jobs:
       go_version: ${{ needs.config.outputs.go_version }}
       scan_severity: ${{ needs.config.outputs.err_on_vul_sev }}
       linter_version: ${{ needs.config.outputs.linter_version }}
+
+  # ── cli release (goreleaser) ────────────────────────────────────────
 
   release:
     outputs:
@@ -77,7 +81,7 @@ jobs:
         checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
         echo "hashes=$(cat $checksum_file | base64 -w0)" >> $GITHUB_OUTPUT
 
-  provenance:
+  cli-provenance:
     needs:
     - release
     permissions:
@@ -90,12 +94,12 @@ jobs:
       upload-assets: true
       compile-generator: true
 
-  verify:
+  cli-verify:
     env:
       ATT_FILE_NAME: "multiple.intoto.jsonl"
     needs:
     - release
-    - provenance
+    - cli-provenance
     runs-on: ubuntu-latest
     permissions: read-all
     steps:
@@ -121,3 +125,56 @@ jobs:
                                             --source-tag "$GITHUB_REF_NAME" \
                                             "$artifact"
           done <<<"$checksums"
+
+  # ── image release (ko) ─────────────────────────────────────────────
+
+  build:
+    needs:
+    - config
+    - test
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build.yaml
+    with:
+      go_version: ${{ needs.config.outputs.go_version }}
+
+  sign:
+    needs:
+    - config
+    - build
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    uses: ./.github/workflows/sign.yaml
+    with:
+      cosign_version: ${{ needs.config.outputs.cosign_version }}
+      image_digest: ${{ needs.build.outputs.digest }}
+
+  scan:
+    needs:
+    - config
+    - build
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    uses: ./.github/workflows/scan.yaml
+    with:
+      image_digest: ${{ needs.build.outputs.digest }}
+      scan_severity: ${{ needs.config.outputs.err_on_vul_sev }}
+
+  img-slsa:
+    needs:
+    - config
+    - build
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/slsa.yaml
+    with:
+      image_digest: ${{ needs.build.outputs.digest }}
+      cosign_version: ${{ needs.config.outputs.cosign_version }}
