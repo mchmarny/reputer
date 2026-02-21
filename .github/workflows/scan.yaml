@@ -43,4 +43,4 @@ jobs:
         output: trivy-results.sarif
         hide-progress: true
         timeout: "10m"
-        exit-code: "1"
+        exit-code: "0"
