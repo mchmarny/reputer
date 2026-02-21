@@ -304,3 +304,18 @@ type CategoryWeight struct {
     Weight  float64 `json:"weight"`
 }
 ```
+
+## Implementation Notes
+
+- Half-life multiplier capped at 1.0 on the upper end (solo repos don't get
+  extended half-lives beyond 90 days).
+- Commit timestamps use committer date (not author date) for recency, as
+  committer date reflects when the commit entered the branch.
+- GitHub returns commits newest-first, so the first commit seen per author in
+  the pagination loop is their most recent.
+- Org membership uses `Organizations.IsMember` which requires the token to
+  have `read:org` scope. Falls back to false on any error.
+- `ReportMeta` was simplified to `Meta` in implementation to avoid
+  `report.ReportMeta` stuttering.
+- The `make snapshot` cosign signing step requires interactive Sigstore auth
+  and will fail in non-interactive contexts. The build itself succeeds.
