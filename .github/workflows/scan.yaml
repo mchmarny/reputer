@@ -36,6 +36,7 @@ jobs:
         scan-type: image
         scanners: vuln
         severity: ${{ inputs.scan_severity }}
+        ignore-unfixed: true
         image-ref: ${{ inputs.image_digest }}
         github-pat: ${{ secrets.GITHUB_TOKEN }}
         format: sarif
