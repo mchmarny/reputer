@@ -42,7 +42,7 @@ pkg/
 ## Code Patterns
 
 - **Errors**: `fmt.Errorf` with `%w` for wrapping; `errors.New` for simple errors
-- **Logging**: `logrus` aliased as `log`; structured fields via `log.WithFields`
+- **Logging**: `log/slog` via `pkg/logging`; structured key-value pairs
 - **Testing**: `testify/assert` with table-driven tests
 - **Dependencies**: vendored (`go mod vendor`); run `make tidy` after changes
 
