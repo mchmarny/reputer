@@ -9,16 +9,18 @@ import (
 
 	"github.com/mchmarny/reputer/pkg/report"
 	log "github.com/sirupsen/logrus"
-	lab "github.com/xanzy/go-gitlab"
+	lab "gitlab.com/gitlab-org/api/client-go"
 )
 
 const (
-	pageSize    = 100
-	httpTimeout = 30 * time.Second
+	pageSize    int64 = 100
+	httpTimeout       = 30 * time.Second
 )
 
 // ListAuthors is a GitLab commit provider.
 func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
+	log.Warn("GitLab provider is a stub; reputation scores will be incomplete")
+
 	log.WithFields(log.Fields{
 		"owner":  q.Owner,
 		"repo":   q.Repo,
@@ -30,7 +32,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 		return nil, fmt.Errorf("GITLAB_TOKEN environment variable must be set")
 	}
 
-	client, err := lab.NewClient(token, lab.WithHTTPClient(&http.Client{ //nolint:staticcheck // TODO: migrate to gitlab.com/gitlab-org/api/client-go
+	client, err := lab.NewClient(token, lab.WithHTTPClient(&http.Client{
 		Timeout: httpTimeout,
 	}))
 	if err != nil {
@@ -39,12 +41,12 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 
 	list := make(map[string]*report.Author)
 	var totalCommitCounter int64
-	pageCounter := 1
+	var pageCounter int64 = 1
 
 	for {
 		opts := &lab.ListCommitsOptions{
-			All:       lab.Bool(true), //nolint:staticcheck // TODO: migrate to Ptr
-			WithStats: lab.Bool(true), //nolint:staticcheck // TODO: migrate to Ptr
+			All:       lab.Ptr(true),
+			WithStats: lab.Ptr(true),
 			ListOptions: lab.ListOptions{
 				Page:    pageCounter,
 				PerPage: pageSize,
@@ -80,7 +82,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 			totalCommitCounter++
 		}
 
-		if len(p) < pageSize {
+		if int64(len(p)) < pageSize {
 			break
 		}
 

@@ -12,7 +12,7 @@ import (
 )
 
 // ListCommitAuthors returns a list of authors for the given repo and commit.
-func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error {
+func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) (retErr error) {
 	if opt == nil {
 		return errors.New("options must be specified")
 	}
@@ -37,7 +37,11 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) error
 		if err != nil {
 			return fmt.Errorf("error creating file %s: %w", opt.File, err)
 		}
-		defer func() { _ = f.Close() }()
+		defer func() {
+			if cerr := f.Close(); cerr != nil && retErr == nil {
+				retErr = fmt.Errorf("error closing file %s: %w", opt.File, cerr)
+			}
+		}()
 	}
 
 	if err := json.NewEncoder(f).Encode(r); err != nil {
