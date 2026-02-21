@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	lab "github.com/xanzy/go-gitlab"
+	lab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func TestCalculateReputationNilStats(t *testing.T) {

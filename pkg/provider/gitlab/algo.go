@@ -2,7 +2,7 @@ package gitlab
 
 import (
 	"github.com/mchmarny/reputer/pkg/report"
-	lab "github.com/xanzy/go-gitlab"
+	lab "gitlab.com/gitlab-org/api/client-go"
 )
 
 const (
