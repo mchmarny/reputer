@@ -1,4 +1,4 @@
-package reputer
+package reporter
 
 import (
 	"context"

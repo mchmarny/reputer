@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mchmarny/reputer/pkg/reputer"
+	"github.com/mchmarny/reputer/pkg/reporter"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -85,14 +85,14 @@ func Execute() {
 		usage()
 	}
 
-	opt := &reputer.ListCommitAuthorsOptions{
+	opt := &reporter.ListCommitAuthorsOptions{
 		Repo:   repo,
 		Commit: commitSHA,
 		Stats:  withStats,
 		File:   file,
 	}
 
-	if err := reputer.ListCommitAuthors(context.Background(), opt); err != nil {
+	if err := reporter.ListCommitAuthors(context.Background(), opt); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
