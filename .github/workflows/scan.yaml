@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      packages: read
     steps:
 
     - name: Scan Image

@@ -57,6 +57,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      packages: read
     uses: ./.github/workflows/scan.yaml
     with:
       image_digest: ${{ needs.build.outputs.digest }}
