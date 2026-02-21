@@ -21,5 +21,8 @@ cosign.*
 *.pem
 /keys
 
-# ko 
+# ko
 /.digest
+
+# Worktrees
+.worktrees
