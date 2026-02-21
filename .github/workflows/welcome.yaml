@@ -1,0 +1,212 @@
+name: welcome
+
+on:
+  workflow_call:
+    inputs:
+      welcome-message:
+        description: 'Custom welcome text; supports {author} placeholder'
+        required: false
+        type: string
+        default: ''
+      include-stats:
+        description: 'Whether to show detailed stats table'
+        required: false
+        type: boolean
+        default: true
+      reputer-version:
+        description: 'Reputer release version to install (e.g. v0.2.4)'
+        required: false
+        type: string
+        default: 'latest'
+    secrets:
+      token:
+        description: 'GitHub token with pull-requests:write and contents:read'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  welcome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+
+    - name: Check first-time status
+      id: check
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+      with:
+        github-token: ${{ secrets.token }}
+        script: |
+          const author = context.payload.pull_request.user.login;
+          const { data: prs } = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'all',
+            sort: 'created',
+            direction: 'asc',
+            per_page: 2,
+          });
+          const authorPRs = prs.filter(pr => pr.user.login === author);
+          const isFirst = authorPRs.length <= 1;
+          core.setOutput('is_first', isFirst.toString());
+          core.setOutput('author', author);
+          core.info(`Author: ${author}, first-time: ${isFirst}`);
+
+    - name: Install reputer
+      if: inputs.include-stats
+      env:
+        GH_TOKEN: ${{ secrets.token }}
+        VERSION: ${{ inputs.reputer-version }}
+      run: |
+        set -euo pipefail
+
+        if [ "${VERSION}" = "latest" ]; then
+          VERSION=$(gh release view --repo mchmarny/reputer --json tagName -q '.tagName')
+        fi
+
+        # Strip leading v for artifact filename (goreleaser uses version without v)
+        FILE_VERSION="${VERSION#v}"
+        ARTIFACT="reputer_${FILE_VERSION}_linux_amd64"
+        URL="https://github.com/mchmarny/reputer/releases/download/${VERSION}/${ARTIFACT}"
+
+        echo "Downloading reputer ${VERSION} from ${URL}"
+        curl -sSL -o /usr/local/bin/reputer "${URL}"
+        chmod +x /usr/local/bin/reputer
+        reputer --version
+
+    - name: Run reputer
+      if: inputs.include-stats
+      id: reputer
+      env:
+        GITHUB_TOKEN: ${{ secrets.token }}
+      run: |
+        set -euo pipefail
+        REPO="github.com/${{ github.repository }}"
+        reputer --repo "${REPO}" --stats --file /tmp/report.json || true
+        if [ -f /tmp/report.json ]; then
+          echo "has_report=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_report=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Build and post comment
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+      env:
+        IS_FIRST: ${{ steps.check.outputs.is_first }}
+        AUTHOR: ${{ steps.check.outputs.author }}
+        HAS_REPORT: ${{ steps.reputer.outputs.has_report || 'false' }}
+        INCLUDE_STATS: ${{ inputs.include-stats }}
+        WELCOME_MESSAGE: ${{ inputs.welcome-message }}
+      with:
+        github-token: ${{ secrets.token }}
+        script: |
+          const fs = require('fs');
+          const author = process.env.AUTHOR;
+          const isFirst = process.env.IS_FIRST === 'true';
+          const hasReport = process.env.HAS_REPORT === 'true';
+          const includeStats = process.env.INCLUDE_STATS === 'true';
+          const customMessage = process.env.WELCOME_MESSAGE;
+
+          if (!isFirst && !includeStats) {
+            core.info('Not a first-time contributor and stats disabled; skipping.');
+            return;
+          }
+
+          // Build welcome line
+          let welcome = '';
+          if (isFirst) {
+            if (customMessage) {
+              welcome = customMessage.replace(/\{author\}/g, author);
+            } else {
+              welcome = `Welcome @${author}! Thanks for your first pull request to this project.`;
+            }
+          }
+
+          let table = '';
+
+          if (includeStats && hasReport) {
+            // Try to find author in reputer output
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('/tmp/report.json', 'utf8'));
+            } catch (e) {
+              core.warning(`Failed to parse reputer report: ${e.message}`);
+            }
+
+            if (report) {
+              const contributor = (report.contributors || []).find(
+                c => c.username && c.username.toLowerCase() === author.toLowerCase()
+              );
+
+              if (contributor && contributor.stats) {
+                const s = contributor.stats;
+                const score = (contributor.reputation * 100).toFixed(1);
+                const rows = [
+                  `| **Score** | ${score}% |`,
+                  `| Account Age | ${Number(s.age_days).toLocaleString()} days |`,
+                  `| 2FA Enabled | ${s.strong_auth ? 'Yes' : 'No'} |`,
+                  `| Verified Commits | ${s.verified_commits ? 'Yes' : 'No'} |`,
+                  `| Public Repos | ${Number(s.public_repos).toLocaleString()} |`,
+                  `| Followers | ${Number(s.followers).toLocaleString()} |`,
+                ];
+                table = [
+                  '',
+                  '### Contributor Reputation',
+                  '',
+                  '| Metric | Value |',
+                  '|--------|-------|',
+                  ...rows,
+                ].join('\n');
+              }
+            }
+          }
+
+          // Fallback: fetch profile from GitHub API
+          if (includeStats && !table) {
+            try {
+              const { data: user } = await github.rest.users.getByUsername({
+                username: author,
+              });
+              const createdAt = new Date(user.created_at);
+              const ageDays = Math.floor((Date.now() - createdAt.getTime()) / 86400000);
+              const rows = [
+                `| Account Age | ${ageDays.toLocaleString()} days |`,
+                `| 2FA Enabled | ${user.two_factor_authentication ? 'Yes' : 'No'} |`,
+                `| Public Repos | ${Number(user.public_repos).toLocaleString()} |`,
+                `| Followers | ${Number(user.followers).toLocaleString()} |`,
+              ];
+              table = [
+                '',
+                '### Contributor Profile',
+                '',
+                '| Metric | Value |',
+                '|--------|-------|',
+                ...rows,
+              ].join('\n');
+            } catch (e) {
+              core.warning(`Failed to fetch user profile: ${e.message}`);
+            }
+          }
+
+          // Skip if nothing to post
+          if (!welcome && !table) {
+            core.info('No welcome message or stats to post; skipping.');
+            return;
+          }
+
+          const footer = '\n\n*Powered by [reputer](https://github.com/mchmarny/reputer)*';
+          const body = [welcome, table, footer].filter(Boolean).join('\n');
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.payload.pull_request.number,
+            body: body.trim(),
+          });
+
+          core.info('Comment posted successfully.');

@@ -86,6 +86,70 @@ Same command with `--stats`
 }
 ```
 
+## scoring
+
+Reputation is a value between `0` (no/low reputation) and `1.0` (high reputation), calculated using graduated proportional scoring. Each signal contributes linearly between 0 and its weight ceiling:
+
+| Signal | Weight | Ceiling | Notes |
+|--------|--------|---------|-------|
+| 2FA (strong auth) | 0.25 | — | Binary: full weight if enabled |
+| Commit verification | 0.25 | 100% verified | Ratio of verified to total commits |
+| Follower/following ratio | 0.15 | 10:1 | Skipped if following is 0 |
+| Account age | 0.15 | 365 days | Linear ramp to 1 year |
+| Public repositories | 0.10 | 20 repos | |
+| Private repositories | 0.10 | 10 repos | |
+
+Each signal is clamped: `min(1.0, value / ceiling) × weight`. The final score is the sum of all weighted signals. Suspended users always score `0`.
+
+## github actions
+
+A reusable workflow is provided to welcome first-time PR contributors with a comment that includes their reputation stats.
+
+### caller example
+
+Add this to your repo at `.github/workflows/welcome.yaml`:
+
+```yaml
+name: welcome
+on:
+  pull_request_target:
+    types: [opened]
+permissions:
+  pull-requests: write
+  contents: read
+jobs:
+  welcome:
+    uses: mchmarny/reputer/.github/workflows/welcome.yaml@main
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### inputs
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `welcome-message` | string | *(auto)* | Custom welcome text; supports `{author}` placeholder |
+| `include-stats` | boolean | `true` | Whether to show the stats table |
+| `reputer-version` | string | `latest` | Reputer release version to install (e.g. `v0.2.4`) |
+
+### secrets
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `token` | yes | GitHub token with `pull-requests: write` and `contents: read` |
+
+### behavior
+
+1. Checks if the PR author is a first-time contributor
+2. Installs reputer (pinned version or latest release)
+3. Runs reputer against the calling repository
+4. Posts a comment with:
+   - Welcome message (first-time contributors only)
+   - **Contributor Reputation** table if reputer finds the author in the repo history
+   - **Contributor Profile** table (GitHub API fallback) if the author has no commits in the repo yet
+
+The workflow uses `pull_request_target` context and does not check out PR code, so it is safe for use on public repositories.
+
 ## disclaimer
 
 This is my personal project and it does not represent my employer. While I do my best to ensure that everything works, I take no responsibility for issues caused by this code.
