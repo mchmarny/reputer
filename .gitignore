@@ -1,31 +1,17 @@
-# Mac 
+# OS
 .DS_Store
 
-# Test binaries
+# Test
 *.test
-tmp
-test.json
-
-# Coverage
 *.out
 
-# Binaries
-bin
-dist
+# Build
+bin/
+dist/
 
-# Data
-/data
-
-# Keys 
+# Keys
 cosign.*
 *.pem
-/keys
-
-# ko
-/.digest
-
-# Worktrees
-.worktrees
 
 # Claude Code
 .claude/settings.local.json
