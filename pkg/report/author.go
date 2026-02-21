@@ -49,4 +49,6 @@ type Stats struct {
 	PrivateRepos      int64 `json:"private_repos,omitempty"`
 	Followers         int64 `json:"followers,omitempty"`
 	Following         int64 `json:"following,omitempty"`
+	LastCommitDays    int64 `json:"last_commit_days,omitempty"`
+	OrgMember         bool  `json:"org_member,omitempty"`
 }
