@@ -158,7 +158,11 @@ permissions:
   contents: read
 jobs:
   welcome:
-    uses: mchmarny/reputer/.github/workflows/welcome.yaml@main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mchmarny/reputer@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Inputs
