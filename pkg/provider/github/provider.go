@@ -10,6 +10,7 @@ import (
 
 	hub "github.com/google/go-github/v72/github"
 	"github.com/mchmarny/reputer/pkg/report"
+	"github.com/mchmarny/reputer/pkg/score"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -104,13 +105,8 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 	}
 
 	rpt.Meta = &report.Meta{
-		ModelVersion: report.ModelVersion,
-		Categories: []report.CategoryWeight{
-			{Name: "code_provenance", Weight: CategoryProvenanceWeight},
-			{Name: "identity", Weight: CategoryIdentityWeight},
-			{Name: "engagement", Weight: CategoryEngagementWeight},
-			{Name: "community", Weight: CategoryCommunityWeight},
-		},
+		ModelVersion: score.ModelVersion,
+		Categories:   score.Categories(),
 	}
 
 	totalContributors := len(list)
