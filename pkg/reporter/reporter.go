@@ -9,6 +9,7 @@ import (
 
 	"github.com/mchmarny/reputer/pkg/provider"
 	"github.com/mchmarny/reputer/pkg/report"
+	"gopkg.in/yaml.v3"
 )
 
 // ListCommitAuthors returns a list of authors for the given repo and commit.
@@ -44,8 +45,15 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) (retE
 		}()
 	}
 
-	if err := json.NewEncoder(f).Encode(r); err != nil {
-		return fmt.Errorf("error encoding authors for %s: %w", opt, err)
+	switch opt.Format {
+	case "yaml":
+		if err := yaml.NewEncoder(f).Encode(r); err != nil {
+			return fmt.Errorf("error encoding authors for %s: %w", opt, err)
+		}
+	default:
+		if err := json.NewEncoder(f).Encode(r); err != nil {
+			return fmt.Errorf("error encoding authors for %s: %w", opt, err)
+		}
 	}
 
 	return nil

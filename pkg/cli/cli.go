@@ -19,6 +19,7 @@ Options:
   --commit   Commit at which to end the report (optional, inclusive)
   --stats    Includes stats used to calculate reputation (optional)
   --file     Write output to file at this path (optional, stdout if not specified)
+  --format   Output format: json or yaml (optional, default: json)
   --debug    Turns logging verbose (optional)
   --version  Prints version only (optional)
 
@@ -33,6 +34,7 @@ var (
 	repo      string
 	commitSHA string
 	file      string
+	format    string
 	isDebug   bool
 	isVersion bool
 	withStats bool
@@ -43,6 +45,7 @@ func init() {
 	flag.StringVar(&commitSHA, "commit", "", "")
 	flag.BoolVar(&withStats, "stats", false, "")
 	flag.StringVar(&file, "file", "", "")
+	flag.StringVar(&format, "format", "json", "")
 	flag.BoolVar(&isDebug, "debug", false, "")
 	flag.BoolVar(&isVersion, "version", false, "")
 }
@@ -90,6 +93,7 @@ func Execute() {
 		Commit: commitSHA,
 		Stats:  withStats,
 		File:   file,
+		Format: format,
 	}
 
 	if err := reporter.ListCommitAuthors(context.Background(), opt); err != nil {

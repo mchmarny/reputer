@@ -30,7 +30,7 @@ brew install reputer
 Go:
 
 ```shell
-go install github.com/mchmarny/reputer@latest
+go install github.com/mchmarny/reputer/cmd/reputer@latest
 ```
 
 Or download a binary from the [releases](https://github.com/mchmarny/reputer/releases) page.
@@ -47,6 +47,7 @@ reputer [flags]
 | `--commit` | Commit at which to end the report (optional, inclusive) |
 | `--stats` | Include stats used to calculate reputation (optional) |
 | `--file` | Write output to file at this path (optional, stdout if not specified) |
+| `--format` | Output format: `json` or `yaml` (optional, default: `json`) |
 | `--debug` | Turn on verbose logging (optional) |
 | `--version` | Print version only (optional) |
 
