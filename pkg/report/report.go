@@ -3,16 +3,15 @@ package report
 import (
 	"sort"
 	"time"
+
+	"github.com/mchmarny/reputer/pkg/score"
 )
 
 // ModelVersion is the current scoring model version.
-const ModelVersion = "2.0.0"
+var ModelVersion = score.ModelVersion
 
 // CategoryWeight describes a scoring category and its weight.
-type CategoryWeight struct {
-	Name   string  `json:"name"`
-	Weight float64 `json:"weight"`
-}
+type CategoryWeight = score.CategoryWeight
 
 // Meta holds scoring model metadata.
 type Meta struct {
