@@ -11,7 +11,7 @@ sboms:
 builds:
   - binary: reputer
     mod_timestamp: '{{ .CommitTimestamp }}'
-    dir: cmd/
+    dir: cmd/reputer/
     env:
       - CGO_ENABLED=0
     flags:
@@ -58,6 +58,7 @@ release:
     owner: mchmarny
     name: reputer
   prerelease: auto
+  draft: true
 
 kos:
   - id: reputer
@@ -84,13 +85,25 @@ archives:
 
 changelog:
   sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Other
+      order: 999
   filters:
     exclude:
       - "^docs:"
       - "^test:"
-      - readme
+      - "^chore:"
+      - "^build:"
+      - "^ci:"
+      - "^style:"
       - typo
-      - "bump version"
+      - readme
 
 brews:
   - repository:
@@ -98,21 +111,7 @@ brews:
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/mchmarny/reputer"
-    description: "CLI tool to calculate contributor reputation from Git providers"
-    directory: Formula
+    description: "CLI tool that calculates contributor reputation scores from Git provider APIs"
     license: "Apache-2.0"
     test: |
       system "#{bin}/reputer" "--version"
-
-nfpms:
-  - file_name_template: "reputer-{{.Version}}_{{.Os}}-{{.Arch}}"
-    homepage: https://github.com/mchmarny/reputer/
-    description: "CLI tool to calculate contributor reputation from Git providers"
-    maintainer: Mark Chmarny <mchmarny@users.noreply.github.com>
-    license: Apache 2.0
-    vendor: mchmarny
-    section: utils
-    formats:
-      - deb
-      - rpm
-    bindir: /usr/bin

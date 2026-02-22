@@ -88,19 +88,14 @@ qualify: test-coverage lint vulncheck ## Qualifies the codebase (test-coverage, 
 # =============================================================================
 
 .PHONY: build
-build: tidy ## Builds CLI binary
-	mkdir -p ./bin
-	CGO_ENABLED=0 go build -trimpath \
-	-ldflags="-w -s \
-	-X github.com/mchmarny/reputer/pkg/cli.version=$(VERSION) \
-	-X github.com/mchmarny/reputer/pkg/cli.commit=$(COMMIT) \
-	-X 'github.com/mchmarny/reputer/pkg/cli.date=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)' \
-	-extldflags '-static'" -mod vendor \
-	-o bin/reputer cmd/main.go
+build: tidy ## Builds binaries for current OS and architecture
+	@set -e; \
+	GITHUB_TOKEN= GITLAB_TOKEN= goreleaser build --clean --single-target --snapshot --timeout 10m0s || exit 1; \
+	echo "Build completed, binaries in ./dist"
 
-.PHONY: snapshot
-snapshot: test lint ## Runs test, lint before building snapshot distributables
-	GITLAB_TOKEN="" goreleaser release --snapshot --clean --timeout 10m0s
+.PHONY: release
+release: ## Runs the full release process with goreleaser
+	goreleaser release --snapshot --clean --timeout 10m0s
 
 .PHONY: bump-patch
 bump-patch: ## Bumps patch version (v1.2.3 → v1.2.4)

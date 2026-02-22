@@ -22,13 +22,16 @@ Run `make lint` and `make test` before every commit.
 ## Project Structure
 
 ```
-cmd/                    CLI entry point
+cmd/
+  reputer/              CLI entry point (main.go)
 pkg/
+  cli/                  CLI argument parsing and execution
+  logging/              Structured logging (log/slog wrapper)
   provider/             Provider abstraction (routes queries to backend)
     github/             GitHub: API client, reputation algo, tests
     gitlab/             GitLab: stub provider (documented TODO)
   report/               Data model (Author, Stats, Report, Query)
-  reputer/              Orchestration (ListCommitAuthors, options)
+  reporter/             Orchestration (ListCommitAuthors, options)
   score/                Standalone scoring model (Compute, Signals, Categories)
 ```
 

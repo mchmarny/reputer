@@ -82,14 +82,16 @@ make qualify
 
 ```
 reputer/
-├── cmd/                    CLI entry point
+├── cmd/
+│   └── reputer/            CLI entry point (main.go)
 ├── pkg/
+│   ├── cli/                CLI argument parsing and execution
+│   ├── logging/            Structured logging (log/slog wrapper)
 │   ├── provider/           Provider abstraction (routes queries to backend)
 │   │   ├── github/         GitHub: API client, reputation algorithm, tests
 │   │   └── gitlab/         GitLab: stub provider (documented TODO)
 │   ├── report/             Data model (Author, Stats, Report, Query)
-│   ├── reporter/           Output formatting (JSON file writer)
-│   ├── reputer/            Orchestration (ListCommitAuthors, options)
+│   ├── reporter/           Orchestration (ListCommitAuthors, options)
 │   └── score/              Standalone scoring model (Compute, Signals, Categories)
 ├── tools/                  Development scripts (bump)
 ├── .github/
@@ -103,8 +105,11 @@ reputer/
 
 ### Key Components
 
-#### CLI (`cmd/`)
-Thin entry point that wires flags to the orchestration layer.
+#### CLI (`cmd/reputer/`, `pkg/cli/`)
+Thin entry point (`cmd/reputer/main.go`) that calls into `pkg/cli` for argument parsing and execution.
+
+#### Logging (`pkg/logging/`)
+Structured logging wrapper around `log/slog` with CLI-friendly output.
 
 #### Provider (`pkg/provider/`)
 Abstraction layer that routes queries to the correct backend (GitHub or GitLab). Each provider implements the reputation scoring algorithm using that platform's API.
@@ -115,7 +120,7 @@ Full implementation with API client, graduated proportional scoring, rate-limit 
 #### Report (`pkg/report/`)
 Data model types: `Author`, `Stats`, `Report`, `Query`. Pure data structures with no external dependencies.
 
-#### Reputer (`pkg/reputer/`)
+#### Reporter (`pkg/reporter/`)
 Orchestration layer that coordinates providers and produces reports. Contains `ListCommitAuthors` and configuration options.
 
 ### Data Flow
