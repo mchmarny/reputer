@@ -16,7 +16,8 @@ inputs:
     default: 'latest'
   github-token:
     description: 'GitHub token for API access and PR comments'
-    required: true
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: 'composite'
