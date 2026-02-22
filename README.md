@@ -23,7 +23,7 @@ A personal access token for the target provider:
 Homebrew:
 
 ```shell
-brew tap mchmarny/reputer
+brew tap mchmarny/tap
 brew install reputer
 ```
 

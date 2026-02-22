@@ -95,7 +95,7 @@ changelog:
 brews:
   - repository:
       owner: mchmarny
-      name: homebrew-reputer
+      name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/mchmarny/reputer"
     description: "CLI tool to calculate contributor reputation from Git providers"
