@@ -89,7 +89,8 @@ reputer/
 │   │   └── gitlab/         GitLab: stub provider (documented TODO)
 │   ├── report/             Data model (Author, Stats, Report, Query)
 │   ├── reporter/           Output formatting (JSON file writer)
-│   └── reputer/            Orchestration (ListCommitAuthors, options)
+│   ├── reputer/            Orchestration (ListCommitAuthors, options)
+│   └── score/              Standalone scoring model (Compute, Signals, Categories)
 ├── tools/                  Development scripts (bump)
 ├── .github/
 │   ├── workflows/          CI/CD workflows (test, release, scan, score)

@@ -29,6 +29,7 @@ pkg/
     gitlab/             GitLab: stub provider (documented TODO)
   report/               Data model (Author, Stats, Report, Query)
   reputer/              Orchestration (ListCommitAuthors, options)
+  score/                Standalone scoring model (Compute, Signals, Categories)
 ```
 
 ## Non-Negotiable Rules
