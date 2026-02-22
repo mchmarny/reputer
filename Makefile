@@ -117,7 +117,7 @@ bump-major: ## Bumps major version (v1.2.3 → v2.0.0)
 clean: ## Cleans build artifacts
 	go clean
 	rm -fr ./vendor
-	rm -fr ./bin
+	rm -fr ./dist
 	rm -f ./cover.out
 
 .PHONY: help

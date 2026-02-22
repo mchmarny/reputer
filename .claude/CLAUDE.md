@@ -11,10 +11,10 @@ This file provides guidance to Claude Code when working with this repository.
 ```
 make test        # unit tests with -race and coverage
 make lint        # golangci-lint + yamllint
-make build       # build binary to ./bin/reputer
+make build       # goreleaser build for current OS/arch (output in ./dist)
 make tidy        # go mod tidy + vendor
 make vulncheck   # govulncheck
-make snapshot    # test + lint + goreleaser build
+make release     # goreleaser snapshot release (all platforms)
 ```
 
 Run `make lint` and `make test` before every commit.

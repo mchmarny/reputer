@@ -62,7 +62,7 @@ Build for your current platform:
 make build
 ```
 
-The binary is output to `./bin/reputer`.
+Binaries are output to `./dist/` via goreleaser.
 
 ### Finalize Setup
 
@@ -96,7 +96,7 @@ reputer/
 ├── tools/                  Development scripts (bump)
 ├── .github/
 │   ├── workflows/          CI/CD workflows (test, release, scan, score)
-│   └── actions/            Composite actions (setup-build-tools)
+│   └── actions/            Composite actions (setup-go-env, setup-build-tools)
 ├── .golangci.yaml          golangci-lint configuration
 ├── .yamllint.yaml          yamllint configuration
 ├── .goreleaser.yaml        GoReleaser configuration
@@ -121,12 +121,15 @@ Full implementation with API client, graduated proportional scoring, rate-limit 
 Data model types: `Author`, `Stats`, `Report`, `Query`. Pure data structures with no external dependencies.
 
 #### Reporter (`pkg/reporter/`)
-Orchestration layer that coordinates providers and produces reports. Contains `ListCommitAuthors` and configuration options.
+Orchestration layer that coordinates providers and produces reports. Contains `ListCommitAuthors` and configuration options. Supports JSON and YAML output formats.
+
+#### Score (`pkg/score/`)
+Standalone scoring model implementing the v2 risk-weighted categorical algorithm. Exposes `Compute(Signals)`, category weights, and model version. No external dependencies.
 
 ### Data Flow
 
 ```
-Git Provider API --> provider (github/gitlab) --> reputer orchestration --> report --> stdout/file
+Git Provider API --> provider (github/gitlab) --> reporter orchestration --> report --> stdout/file (json/yaml)
 ```
 
 ## Development Workflow
@@ -193,8 +196,8 @@ This runs: `test-coverage` -> `lint` -> `vulncheck`
 
 | Target | Description |
 |--------|-------------|
-| `make build` | Build binary to `./bin/reputer` |
-| `make snapshot` | Test + lint then goreleaser snapshot build |
+| `make build` | Build binaries for current OS/architecture via goreleaser (output in `./dist/`) |
+| `make release` | Full goreleaser snapshot release (all platforms) |
 | `make bump-patch` | Bump patch version (1.2.3 -> 1.2.4) |
 | `make bump-minor` | Bump minor version (1.2.3 -> 1.3.0) |
 | `make bump-major` | Bump major version (1.2.3 -> 2.0.0) |
