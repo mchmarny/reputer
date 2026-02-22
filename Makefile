@@ -6,7 +6,7 @@ GOLINT_VER :=$(shell golangci-lint --version 2>/dev/null | awk '{print $$4}' || 
 YAML_FILES :=$(shell find . ! -path "./vendor/*" -type f -regex ".*\.yaml" -print)
 COVERAGE   ?=$(shell awk '/^target:/{print $$2}' .codecov.yaml 2>/dev/null)
 ifeq ($(COVERAGE),)
-COVERAGE := 30
+COVERAGE := 45
 endif
 
 all: help
@@ -79,8 +79,12 @@ test: ## Runs unit tests with race detector and coverage
 vulncheck: ## Checks for source vulnerabilities
 	govulncheck -test ./...
 
+.PHONY: e2e
+e2e: ## Runs end-to-end CLI tests (requires GITHUB_TOKEN)
+	tools/e2e
+
 .PHONY: qualify
-qualify: test-coverage lint vulncheck ## Qualifies the codebase (test-coverage, lint, vulncheck)
+qualify: test-coverage lint vulncheck e2e ## Qualifies the codebase (test-coverage, lint, vulncheck, e2e)
 	@echo "Codebase qualification completed"
 
 # =============================================================================

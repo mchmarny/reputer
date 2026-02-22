@@ -13,6 +13,7 @@ jobs:
     uses: ./.github/workflows/test.yaml
     permissions:
       contents: read
+    secrets: inherit
 
   release:
     runs-on: ubuntu-latest

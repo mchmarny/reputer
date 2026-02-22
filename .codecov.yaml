@@ -7,4 +7,4 @@ coverage:
 
 # Local minimum coverage threshold enforced by `make test-coverage`.
 # Codecov ignores this key; the Makefile parses it.
-target: 35
+target: 45

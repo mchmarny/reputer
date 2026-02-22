@@ -1,0 +1,125 @@
+#!/bin/bash
+set -euo pipefail
+
+err() { echo "FAIL: $*" >&2; exit 1; }
+pass() { echo "PASS: $*"; }
+
+# Require dependencies
+command -v go >/dev/null 2>&1 || err "go is required"
+command -v jq >/dev/null 2>&1 || err "jq is required"
+[[ -n "${GITHUB_TOKEN:-}" ]] || err "GITHUB_TOKEN env var is required"
+
+# Build binary to temp directory, clean up on exit
+TMPDIR_E2E=$(mktemp -d)
+trap 'rm -rf "$TMPDIR_E2E"' EXIT
+BIN="$TMPDIR_E2E/reputer"
+
+echo "==> Building reputer binary..."
+go build -mod=vendor -o "$BIN" ./cmd/reputer
+[[ -x "$BIN" ]] || err "binary not found after build"
+
+REPO="github.com/mchmarny/reputer"
+FAILURES=0
+
+# Helper: run a test case
+run_test() {
+  local name="$1"
+  shift
+  if "$@"; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# --------------------------------------------------------------------------
+# Test: --version
+# --------------------------------------------------------------------------
+if output=$("$BIN" --version 2>&1) && echo "$output" | grep -q "Version:"; then
+  pass "--version"
+else
+  echo "FAIL: --version"; FAILURES=$((FAILURES + 1))
+fi
+
+# --------------------------------------------------------------------------
+# Test: no args (should fail)
+# --------------------------------------------------------------------------
+if "$BIN" >/dev/null 2>&1; then
+  echo "FAIL: no-args (expected non-zero exit)"; FAILURES=$((FAILURES + 1))
+else
+  pass "no-args"
+fi
+
+# --------------------------------------------------------------------------
+# Test: invalid format
+# --------------------------------------------------------------------------
+if output=$("$BIN" --repo "$REPO" --format xml 2>&1); then
+  echo "FAIL: invalid-format (expected non-zero exit)"; FAILURES=$((FAILURES + 1))
+elif echo "$output" | grep -qi "unsupported format"; then
+  pass "invalid-format"
+else
+  echo "FAIL: invalid-format (stderr missing 'unsupported format')"; FAILURES=$((FAILURES + 1))
+fi
+
+# --------------------------------------------------------------------------
+# Test: JSON stdout
+# --------------------------------------------------------------------------
+if output=$("$BIN" --repo "$REPO" 2>/dev/null); then
+  if echo "$output" | jq -e '.repo' >/dev/null 2>&1 && \
+     echo "$output" | jq -e '.contributors' >/dev/null 2>&1; then
+    pass "json-stdout"
+  else
+    echo "FAIL: json-stdout (missing .repo or .contributors)"; FAILURES=$((FAILURES + 1))
+  fi
+else
+  echo "FAIL: json-stdout (non-zero exit)"; FAILURES=$((FAILURES + 1))
+fi
+
+# --------------------------------------------------------------------------
+# Test: JSON --file
+# --------------------------------------------------------------------------
+OUT_FILE="$TMPDIR_E2E/out.json"
+if "$BIN" --repo "$REPO" --file "$OUT_FILE" 2>/dev/null; then
+  if [[ -f "$OUT_FILE" ]] && jq -e '.repo' "$OUT_FILE" >/dev/null 2>&1; then
+    pass "json-file"
+  else
+    echo "FAIL: json-file (file missing or invalid JSON)"; FAILURES=$((FAILURES + 1))
+  fi
+else
+  echo "FAIL: json-file (non-zero exit)"; FAILURES=$((FAILURES + 1))
+fi
+
+# --------------------------------------------------------------------------
+# Test: YAML output
+# --------------------------------------------------------------------------
+if output=$("$BIN" --repo "$REPO" --format yaml 2>/dev/null); then
+  if echo "$output" | grep -q "repo:" && echo "$output" | grep -q "contributors:"; then
+    pass "yaml-output"
+  else
+    echo "FAIL: yaml-output (missing repo: or contributors:)"; FAILURES=$((FAILURES + 1))
+  fi
+else
+  echo "FAIL: yaml-output (non-zero exit)"; FAILURES=$((FAILURES + 1))
+fi
+
+# --------------------------------------------------------------------------
+# Test: --stats
+# --------------------------------------------------------------------------
+if output=$("$BIN" --repo "$REPO" --stats 2>/dev/null); then
+  if echo "$output" | jq -e '.contributors[0].stats' >/dev/null 2>&1; then
+    pass "with-stats"
+  else
+    echo "FAIL: with-stats (missing .contributors[0].stats)"; FAILURES=$((FAILURES + 1))
+  fi
+else
+  echo "FAIL: with-stats (non-zero exit)"; FAILURES=$((FAILURES + 1))
+fi
+
+# --------------------------------------------------------------------------
+# Summary
+# --------------------------------------------------------------------------
+echo ""
+if [[ $FAILURES -gt 0 ]]; then
+  err "$FAILURES test(s) failed"
+fi
+echo "==> All e2e tests passed"
