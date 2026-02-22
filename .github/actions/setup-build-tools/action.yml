@@ -5,7 +5,7 @@ inputs:
   install_ko:
     description: 'Install ko (true/false)'
     required: false
-    default: 'false'
+    default: 'true'
   ko_version:
     description: 'ko version (e.g. v0.18.0)'
     required: false
@@ -13,15 +13,15 @@ inputs:
   install_syft:
     description: 'Install syft (true/false)'
     required: false
-    default: 'false'
+    default: 'true'
   install_cosign:
     description: 'Install cosign (true/false)'
     required: false
-    default: 'false'
+    default: 'true'
   install_goreleaser:
     description: 'Install goreleaser (true/false)'
     required: false
-    default: 'false'
+    default: 'true'
 
 runs:
   using: 'composite'

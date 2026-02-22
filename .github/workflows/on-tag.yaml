@@ -27,30 +27,42 @@ jobs:
       packages: write
       id-token: write
       attestations: write
+
     steps:
     - name: Checkout Code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       with:
         fetch-depth: 0
         persist-credentials: false
-    - name: Setup Go
-      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
-      with:
-        go-version-file: go.mod
+
+    - name: Setup Go Environment
+      uses: ./.github/actions/setup-go-env
+
     - name: Setup Build Tools
       uses: ./.github/actions/setup-build-tools
-      with:
-        install_ko: 'true'
-        install_syft: 'true'
-        install_cosign: 'true'
-        install_goreleaser: 'true'
+
     - name: Build CLI
       run: goreleaser release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
-        KO_DOCKER_REPO: ghcr.io/mchmarny/reputer
+        KO_DOCKER_REPO: ghcr.io/${{ github.repository }}
+
     - name: Attest Build Provenance
       uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2  # v2.2.3
       with:
         subject-path: 'dist/checksums.txt'
+
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+    - release
+    permissions:
+      contents: write
+    steps:
+    - name: Publish Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_REPO: ${{ github.repository }}
+      run: gh release edit "${{ github.ref_name }}" --draft=false
