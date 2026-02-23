@@ -1,3 +1,22 @@
+## 1.41.0
+
+### 🚀 Features
+
+- feat: Add missing event toggles to Group Slack integration ([!2784](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2784)) by [Mohamed Othman](https://gitlab.com/mohamed.othman27)
+
+### 🔄 Other Changes
+
+- chore(deps): update module buf.build/go/protovalidate to v1.1.3 ([!2783](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2783)) by [GitLab Dependency Bot](https://gitlab.com/gitlab-dependency-update-bot)
+
+
+
+# [1.41.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.40.1...v1.41.0) (2026-02-22)
+
+
+### Features
+
+* Add missing event toggles to Group Slack integration ([a4e84a2](https://gitlab.com/gitlab-org/api/client-go/commit/a4e84a27f22083a40f351591c5a851ba19b6a7dc))
+
 ## 1.40.1
 
 ### 🐛 Bug Fixes
