@@ -527,6 +527,7 @@ type CreateUserOptions struct {
 	Username            *string     `url:"username,omitempty" json:"username,omitempty"`
 	WebsiteURL          *string     `url:"website_url,omitempty" json:"website_url,omitempty"`
 	ViewDiffsFileByFile *bool       `url:"view_diffs_file_by_file,omitempty" json:"view_diffs_file_by_file,omitempty"`
+	PublicEmail         *string     `url:"public_email,omitempty" json:"public_email,omitempty"`
 }
 
 func (s *UsersService) CreateUser(opt *CreateUserOptions, options ...RequestOptionFunc) (*User, *Response, error) {
