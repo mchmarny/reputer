@@ -24,7 +24,7 @@ github.com/pmezard/go-difflib/difflib
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/require
-# gitlab.com/gitlab-org/api/client-go v1.40.1
+# gitlab.com/gitlab-org/api/client-go v1.43.0
 ## explicit; go 1.24.0
 gitlab.com/gitlab-org/api/client-go
 # golang.org/x/oauth2 v0.35.0
