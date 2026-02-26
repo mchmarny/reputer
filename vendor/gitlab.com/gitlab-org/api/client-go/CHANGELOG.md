@@ -1,3 +1,85 @@
+## 1.44.0
+
+### 🚀 Features
+
+- Implement runner controller instance-level runner scope support ([!2765](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2765)) by [Timo Furrer](https://gitlab.com/timofurrer)
+
+### 🔄 Other Changes
+
+- chore(deps): update module github.com/graph-gophers/graphql-go to v1.9.0 ([!2789](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2789)) by [GitLab Dependency Bot](https://gitlab.com/gitlab-dependency-update-bot)
+
+
+
+# [1.44.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.43.0...v1.44.0) (2026-02-26)
+
+## 1.43.0
+
+### 🚀 Features
+
+- feat(pagination): Add `ScanAndCollectN` to collect at most _n_ results. ([!2788](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2788)) by [Florian Forster](https://gitlab.com/fforster)
+
+
+
+# [1.43.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.42.0...v1.43.0) (2026-02-25)
+
+
+### Features
+
+* **pagination:** Add `ScanAndCollectN` to collect at most _n_ results. ([f821c08](https://gitlab.com/gitlab-org/api/client-go/commit/f821c08c2a460755a0ae4db08fa468b54cbb4be1))
+
+## 1.42.0
+
+### 🚀 Features
+
+- feat: Add public_email to CreateUserOptions ([!2787](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2787)) by [Mohamed Othman](https://gitlab.com/mohamed.othman27)
+
+
+
+# [1.42.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.41.1...v1.42.0) (2026-02-24)
+
+
+### Features
+
+* Add public_email to CreateUserOptions ([ab1ec31](https://gitlab.com/gitlab-org/api/client-go/commit/ab1ec3131687de457c8518c60150c254cc56fd83))
+
+## 1.41.1
+
+### 🐛 Bug Fixes
+
+- fix: Fixed a set of endpoints where inputs were escaped and should not be escaped ([!2772](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2772)) by [kilianpaquier](https://gitlab.com/u.kilianpaquier)
+
+### 🔄 Other Changes
+
+- Add `primary_domain` and `pages_primary_domain` to Pages structs ([!2786](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2786)) by [Mohamed Mongy](https://gitlab.com/mohamedmongy96)
+
+
+
+## [1.41.1](https://gitlab.com/gitlab-org/api/client-go/compare/v1.41.0...v1.41.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* Fixed a set of endpoints where inputs were escaped and should not be escaped ([d6d7b17](https://gitlab.com/gitlab-org/api/client-go/commit/d6d7b17f0c4d63c2613ae2aed2ea2901e87c7b8b))
+
+## 1.41.0
+
+### 🚀 Features
+
+- feat: Add missing event toggles to Group Slack integration ([!2784](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2784)) by [Mohamed Othman](https://gitlab.com/mohamed.othman27)
+
+### 🔄 Other Changes
+
+- chore(deps): update module buf.build/go/protovalidate to v1.1.3 ([!2783](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2783)) by [GitLab Dependency Bot](https://gitlab.com/gitlab-dependency-update-bot)
+
+
+
+# [1.41.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.40.1...v1.41.0) (2026-02-22)
+
+
+### Features
+
+* Add missing event toggles to Group Slack integration ([a4e84a2](https://gitlab.com/gitlab-org/api/client-go/commit/a4e84a27f22083a40f351591c5a851ba19b6a7dc))
+
 ## 1.40.1
 
 ### 🐛 Bug Fixes
