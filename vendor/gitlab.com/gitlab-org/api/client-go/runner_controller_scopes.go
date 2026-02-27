@@ -32,6 +32,19 @@ type (
 		// GitLab API docs:
 		// https://docs.gitlab.com/api/runner_controllers/#remove-instance-level-scope
 		RemoveRunnerControllerInstanceScope(rid int64, options ...RequestOptionFunc) (*Response, error)
+		// AddRunnerControllerRunnerScope adds a runner scope to a runner
+		// controller. This is an admin-only endpoint. The runner must be an
+		// instance-level runner.
+		//
+		// GitLab API docs:
+		// https://docs.gitlab.com/api/runner_controllers/#add-runner-scope
+		AddRunnerControllerRunnerScope(rid, runnerID int64, options ...RequestOptionFunc) (*RunnerControllerRunnerLevelScoping, *Response, error)
+		// RemoveRunnerControllerRunnerScope removes a runner scope from a runner
+		// controller. This is an admin-only endpoint.
+		//
+		// GitLab API docs:
+		// https://docs.gitlab.com/api/runner_controllers/#remove-runner-scope
+		RemoveRunnerControllerRunnerScope(rid, runnerID int64, options ...RequestOptionFunc) (*Response, error)
 	}
 
 	// RunnerControllerScopesService handles communication with the runner
@@ -57,12 +70,23 @@ type RunnerControllerInstanceLevelScoping struct {
 	UpdatedAt *time.Time `json:"updated_at"`
 }
 
+// RunnerControllerRunnerLevelScoping represents a runner-level scoping for a
+// GitLab runner controller.
+//
+// GitLab API docs: https://docs.gitlab.com/api/runner_controllers/#runner-controller-scopes
+type RunnerControllerRunnerLevelScoping struct {
+	RunnerID  int64      `json:"runner_id"`
+	CreatedAt *time.Time `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+}
+
 // RunnerControllerScopes represents all scopes configured for a GitLab runner
 // controller.
 //
 // GitLab API docs: https://docs.gitlab.com/api/runner_controllers/#runner-controller-scopes
 type RunnerControllerScopes struct {
 	InstanceLevelScopings []*RunnerControllerInstanceLevelScoping `json:"instance_level_scopings"`
+	RunnerLevelScopings   []*RunnerControllerRunnerLevelScoping   `json:"runner_level_scopings"`
 }
 
 func (s *RunnerControllerScopesService) ListRunnerControllerScopes(rid int64, options ...RequestOptionFunc) (*RunnerControllerScopes, *Response, error) {
@@ -84,6 +108,23 @@ func (s *RunnerControllerScopesService) RemoveRunnerControllerInstanceScope(rid 
 	_, resp, err := do[none](s.client,
 		withMethod(http.MethodDelete),
 		withPath("runner_controllers/%d/scopes/instance", rid),
+		withRequestOpts(options...),
+	)
+	return resp, err
+}
+
+func (s *RunnerControllerScopesService) AddRunnerControllerRunnerScope(rid, runnerID int64, options ...RequestOptionFunc) (*RunnerControllerRunnerLevelScoping, *Response, error) {
+	return do[*RunnerControllerRunnerLevelScoping](s.client,
+		withMethod(http.MethodPost),
+		withPath("runner_controllers/%d/scopes/runners/%d", rid, runnerID),
+		withRequestOpts(options...),
+	)
+}
+
+func (s *RunnerControllerScopesService) RemoveRunnerControllerRunnerScope(rid, runnerID int64, options ...RequestOptionFunc) (*Response, error) {
+	_, resp, err := do[none](s.client,
+		withMethod(http.MethodDelete),
+		withPath("runner_controllers/%d/scopes/runners/%d", rid, runnerID),
 		withRequestOpts(options...),
 	)
 	return resp, err
