@@ -196,6 +196,7 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 
 	// Profile completeness (from existing Users.Get response).
 	a.Stats.HasBio = u.Bio != nil && *u.Bio != ""
+	a.Stats.HasCompany = u.Company != nil && *u.Company != ""
 	a.Stats.HasLocation = u.Location != nil && *u.Location != ""
 	a.Stats.HasWebsite = u.Blog != nil && *u.Blog != ""
 
