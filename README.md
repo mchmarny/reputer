@@ -158,22 +158,22 @@ Reputation is calculated using a **v3 risk-weighted categorical model** (model v
 
 ## GitHub Action
 
-A composite action is provided to welcome first-time PR contributors with a comment that includes their reputation stats.
+A composite action that posts contributor reputation scores on pull requests.
 
 ### Caller example
 
-Add this to your repo at `.github/workflows/welcome.yaml`:
+Add this to your repo at `.github/workflows/reputation.yaml`:
 
 ```yaml
-name: welcome
+name: reputation
 on:
-  pull_request_target:
-    types: [opened]
+  pull_request:
+    types: [opened, synchronize]
 permissions:
   pull-requests: write
   contents: read
 jobs:
-  welcome:
+  score:
     runs-on: ubuntu-latest
     steps:
       - uses: mchmarny/reputer@main
@@ -183,23 +183,15 @@ jobs:
 
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
-| `welcome-message` | string | *(auto)* | Custom welcome text; supports `{author}` placeholder |
-| `include-stats` | boolean | `true` | Whether to show the stats table |
 | `reputer-version` | string | `latest` | Reputer release version to install (e.g. `v0.2.4`) |
 
 The caller's `permissions` block grants `pull-requests: write` and `contents: read` to the automatic `GITHUB_TOKEN`. No additional secrets are needed.
 
 ### Behavior
 
-1. Checks if the PR author is a first-time contributor
-2. Installs reputer (pinned version or latest release)
-3. Runs reputer against the calling repository
-4. Posts a comment with:
-   - Welcome message (first-time contributors only)
-   - **Contributor Reputation** table if reputer finds the author in the repo history
-   - **Contributor Profile** table (GitHub API fallback) if the author has no commits yet
-
-The workflow uses `pull_request_target` context and does not check out PR code, so it is safe for use on public repositories.
+1. Installs reputer (pinned version or latest release, with checksum verification)
+2. Runs reputer against the calling repository
+3. Posts a **Contributor Reputation** comment with the PR author's v3 score and stats
 
 ## Contributing
 
