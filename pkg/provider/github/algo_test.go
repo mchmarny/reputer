@@ -86,7 +86,7 @@ func TestCalculateReputation(t *testing.T) {
 			},
 			totalCommits:      100,
 			totalContributors: 10,
-			wantScore:         0.08,
+			wantScore:         0.10,
 		},
 		{
 			name: "fork-only attacker",
@@ -102,7 +102,25 @@ func TestCalculateReputation(t *testing.T) {
 			},
 			totalCommits:      100,
 			totalContributors: 10,
-			wantScore:         0.12,
+			wantScore:         0.16,
+		},
+		{
+			name: "trusted org member low association",
+			author: &report.Author{
+				Username: "trusted-contributor",
+				Context:  &report.AuthorContext{},
+				Stats: &report.Stats{
+					AgeDays:           365,
+					TrustedOrgMember:  true,
+					AuthorAssociation: "NONE",
+					Commits:           10,
+					PublicRepos:       5,
+					LastCommitDays:    3,
+				},
+			},
+			totalCommits:      100,
+			totalContributors: 10,
+			wantScore:         0.76,
 		},
 	}
 

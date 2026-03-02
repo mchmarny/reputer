@@ -7,11 +7,12 @@ import (
 
 // ListCommitAuthorsOptions configures a reputation report query.
 type ListCommitAuthorsOptions struct {
-	Repo   string
-	Commit string
-	Stats  bool
-	File   string
-	Format string
+	Repo        string
+	Commit      string
+	Stats       bool
+	File        string
+	Format      string
+	TrustedOrgs []string
 }
 
 // Validate checks that required fields are populated.
@@ -38,6 +39,6 @@ func (l *ListCommitAuthorsOptions) Validate() error {
 }
 
 func (l *ListCommitAuthorsOptions) String() string {
-	return fmt.Sprintf("repo: %s, commit: %s, stats: %t, file: %s, format: %s",
-		l.Repo, l.Commit, l.Stats, l.File, l.Format)
+	return fmt.Sprintf("repo: %s, commit: %s, stats: %t, file: %s, format: %s, trusted_orgs: %v",
+		l.Repo, l.Commit, l.Stats, l.File, l.Format, l.TrustedOrgs)
 }

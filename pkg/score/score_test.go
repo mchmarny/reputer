@@ -100,24 +100,31 @@ func TestExpDecay(t *testing.T) {
 
 func TestAssociationScore(t *testing.T) {
 	tests := []struct {
-		name      string
-		assoc     string
-		orgMember bool
-		want      float64
+		name             string
+		assoc            string
+		orgMember        bool
+		trustedOrgMember bool
+		want             float64
 	}{
-		{"OWNER", "OWNER", false, 1.0},
-		{"MEMBER", "MEMBER", false, 1.0},
-		{"COLLABORATOR", "COLLABORATOR", false, 0.8},
-		{"CONTRIBUTOR", "CONTRIBUTOR", false, 0.5},
-		{"FIRST_TIME_CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", false, 0.2},
-		{"NONE", "NONE", false, 0.0},
-		{"empty with org", "", true, 1.0},
-		{"empty without org", "", false, 0.0},
-		{"unknown", "UNKNOWN", false, 0.0},
+		{"OWNER", "OWNER", false, false, 1.0},
+		{"MEMBER", "MEMBER", false, false, 1.0},
+		{"COLLABORATOR", "COLLABORATOR", false, false, 0.8},
+		{"CONTRIBUTOR", "CONTRIBUTOR", false, false, 0.5},
+		{"FIRST_TIME_CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", false, false, 0.2},
+		{"NONE", "NONE", false, false, 0.0},
+		{"empty with org", "", true, false, 1.0},
+		{"empty without org", "", false, false, 0.0},
+		{"unknown", "UNKNOWN", false, false, 0.0},
+		// trusted org member cases
+		{"trusted NONE", "NONE", false, true, 0.8},
+		{"trusted FIRST_TIME", "FIRST_TIME_CONTRIBUTOR", false, true, 0.8},
+		{"trusted CONTRIBUTOR", "CONTRIBUTOR", false, true, 0.8},
+		{"trusted COLLABORATOR", "COLLABORATOR", false, true, 0.8},
+		{"trusted OWNER", "OWNER", false, true, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := associationScore(tt.assoc, tt.orgMember)
+			got := associationScore(tt.assoc, tt.orgMember, tt.trustedOrgMember)
 			assert.InDelta(t, tt.want, got, 0.001)
 		})
 	}
@@ -174,7 +181,7 @@ func TestCompute(t *testing.T) {
 				PublicRepos:       7,
 				ForkedRepos:       7,
 			},
-			wantScore: 0.16,
+			wantScore: 0.23,
 		},
 		{
 			name: "new legitimate contributor",
@@ -191,7 +198,7 @@ func TestCompute(t *testing.T) {
 				PublicRepos:       3,
 				RecentPRRepoCount: 2,
 			},
-			wantScore: 0.66,
+			wantScore: 0.53,
 		},
 		{
 			name: "association CONTRIBUTOR",
@@ -204,7 +211,7 @@ func TestCompute(t *testing.T) {
 				LastCommitDays:    5,
 				PublicRepos:       5,
 			},
-			wantScore: 0.79,
+			wantScore: 0.74,
 		},
 		{
 			name: "association FIRST_TIME_CONTRIBUTOR",
@@ -217,7 +224,7 @@ func TestCompute(t *testing.T) {
 				LastCommitDays:    1,
 				PublicRepos:       1,
 			},
-			wantScore: 0.55,
+			wantScore: 0.37,
 		},
 		{
 			name: "profile completeness 2/4",
@@ -229,7 +236,7 @@ func TestCompute(t *testing.T) {
 				TotalContributors: 10,
 				PublicRepos:       5,
 			},
-			wantScore: 0.38,
+			wantScore: 0.45,
 		},
 		{
 			name: "high PR acceptance rate",
@@ -243,7 +250,7 @@ func TestCompute(t *testing.T) {
 				LastCommitDays:    5,
 				PublicRepos:       10,
 			},
-			wantScore: 0.82,
+			wantScore: 0.78,
 		},
 		{
 			name: "fork-only account",
@@ -254,7 +261,7 @@ func TestCompute(t *testing.T) {
 				TotalCommits:      100,
 				TotalContributors: 10,
 			},
-			wantScore: 0.25,
+			wantScore: 0.32,
 		},
 		{
 			name: "burst rate high",
@@ -267,7 +274,7 @@ func TestCompute(t *testing.T) {
 				TotalContributors: 5,
 				LastCommitDays:    1,
 			},
-			wantScore: 0.56,
+			wantScore: 0.39,
 		},
 		{
 			name: "org member fallback no association",
@@ -280,7 +287,21 @@ func TestCompute(t *testing.T) {
 				LastCommitDays:    2,
 				PublicRepos:       8,
 			},
-			wantScore: 0.82,
+			wantScore: 0.79,
+		},
+		{
+			name: "trusted org member with NONE association",
+			signals: Signals{
+				TrustedOrgMember:  true,
+				AuthorAssociation: "NONE",
+				AgeDays:           500,
+				Commits:           20,
+				TotalCommits:      100,
+				TotalContributors: 10,
+				LastCommitDays:    2,
+				PublicRepos:       8,
+			},
+			wantScore: 0.78,
 		},
 	}
 
@@ -294,5 +315,5 @@ func TestCompute(t *testing.T) {
 }
 
 func TestModelVersion(t *testing.T) {
-	assert.Equal(t, "3.1.0", ModelVersion)
+	assert.Equal(t, "3.2.0", ModelVersion)
 }

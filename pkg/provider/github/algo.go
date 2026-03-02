@@ -34,5 +34,6 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 		PRsClosed:         s.PRsClosed,
 		RecentPRRepoCount: s.RecentPRRepoCount,
 		ForkedRepos:       s.ForkedRepos,
+		TrustedOrgMember:  s.TrustedOrgMember,
 	})
 }

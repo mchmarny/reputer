@@ -27,6 +27,8 @@ func ListCommitAuthors(ctx context.Context, opt *ListCommitAuthorsOptions) (retE
 		return fmt.Errorf("error creating query for %s: %w", opt, err)
 	}
 
+	q.TrustedOrgs = opt.TrustedOrgs
+
 	r, err := provider.GetAuthors(ctx, *q)
 	if err != nil {
 		return fmt.Errorf("error listing authors for %s: %w", opt, err)
