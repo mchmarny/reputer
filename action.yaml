@@ -19,7 +19,7 @@ inputs:
     required: false
     default: '40'
   trusted-orgs:
-    description: 'Comma-separated org names whose members get a scoring boost (each passed as a separate --trusted-orgs flag)'
+    description: 'Org names whose members get a scoring boost (one per line or comma-separated)'
     required: false
     default: ''
 
@@ -79,14 +79,10 @@ runs:
       set -euo pipefail
       REPO="github.com/${{ github.repository }}"
       ARGS="--repo ${REPO} --stats --file /tmp/report.json"
-      TRUSTED_ORGS="${{ inputs.trusted-orgs }}"
-      if [ -n "${TRUSTED_ORGS}" ]; then
-        IFS=',' read -ra ORGS <<< "${TRUSTED_ORGS}"
-        for org in "${ORGS[@]}"; do
-          org=$(echo "${org}" | xargs)
-          [ -n "${org}" ] && ARGS="${ARGS} --trusted-orgs ${org}"
-        done
-      fi
+      while IFS= read -r org; do
+        org=$(echo "${org}" | xargs)
+        [ -n "${org}" ] && ARGS="${ARGS} --trusted-orgs ${org}"
+      done < <(echo "${{ inputs.trusted-orgs }}" | tr ',' '\n')
       reputer ${ARGS} || true
       if [ -f /tmp/report.json ]; then
         echo "has_report=true" >> "$GITHUB_OUTPUT"

@@ -18,4 +18,8 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: mchmarny/reputer@4d8e054aa6f4eb7c03ecfadb7d79ff2cc5bf10ef  # main
+      - uses: mchmarny/reputer@main
+        with:
+          trusted-orgs: |
+            mchmarny
+            NVIDIA

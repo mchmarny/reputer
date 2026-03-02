@@ -185,7 +185,7 @@ jobs:
 | `reputer-version` | string | `latest` | Reputer release version to install (e.g. `v0.2.4`) |
 | `score-green` | string | `70` | Score >= this shows green |
 | `score-yellow` | string | `40` | Score >= this (but < green) shows yellow; below shows red |
-| `trusted-orgs` | string | `` | Comma-separated org names whose members get a scoring boost |
+| `trusted-orgs` | string | `` | Org names whose members get a scoring boost (one per line or comma-separated) |
 
 The caller's `permissions` block grants `pull-requests: write` and `contents: read` to the automatic `GITHUB_TOKEN`. No additional secrets are needed.
 
