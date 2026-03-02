@@ -119,7 +119,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 
 	for _, a := range list {
 		g.Go(func() error {
-			if err := loadAuthor(gctx, client, a, q.Stats, totalCommitCounter, totalContributors, q.Owner); err != nil {
+			if err := loadAuthor(gctx, client, a, q.Stats, totalCommitCounter, totalContributors, q.Owner, q.Name); err != nil {
 				return err
 			}
 			mu.Lock()
@@ -140,7 +140,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 }
 
 // loadAuthor loads the author details.
-func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool, totalCommits int64, totalContributors int, owner string) error {
+func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool, totalCommits int64, totalContributors int, owner, repoName string) error {
 	if client == nil {
 		return fmt.Errorf("client must be specified")
 	}
@@ -193,6 +193,51 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 	} else {
 		a.Stats.OrgMember = isMember
 	}
+
+	// Profile completeness (from existing Users.Get response).
+	a.Stats.HasBio = u.Bio != nil && *u.Bio != ""
+	a.Stats.HasLocation = u.Location != nil && *u.Location != ""
+	a.Stats.HasWebsite = u.Blog != nil && *u.Blog != ""
+
+	// Concurrent v3 signal fetches.
+	var (
+		prResult    prStats
+		recentCount int64
+		forkedCount int64
+		assocResult string
+	)
+
+	sg, sgctx := errgroup.WithContext(ctx)
+
+	sg.Go(func() error {
+		prResult = fetchPRStats(sgctx, client, a.Username)
+		return nil
+	})
+
+	sg.Go(func() error {
+		recentCount = fetchRecentPRRepoCount(sgctx, client, a.Username)
+		return nil
+	})
+
+	sg.Go(func() error {
+		forkedCount = fetchForkedRepoCount(sgctx, client, a.Username)
+		return nil
+	})
+
+	sg.Go(func() error {
+		assocResult = fetchAuthorAssociation(sgctx, client, a.Username, owner, repoName)
+		return nil
+	})
+
+	if err := sg.Wait(); err != nil {
+		slog.Debug(fmt.Sprintf("v3 signal fetch error for %s: %v", a.Username, err))
+	}
+
+	a.Stats.PRsMerged = prResult.Merged
+	a.Stats.PRsClosed = prResult.Closed
+	a.Stats.RecentPRRepoCount = recentCount
+	a.Stats.ForkedRepos = forkedCount
+	a.Stats.AuthorAssociation = assocResult
 
 	calculateReputation(a, totalCommits, totalContributors)
 
