@@ -610,29 +610,45 @@ func (s *IntegrationsService) GetGroupJiraSettings(gid any, options ...RequestOp
 // SetGroupSlackOptions represents the available SetGroupSlackSettings() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/api/group_integrations/#set-up-slack
+// https://docs.gitlab.com/api/group_integrations/#set-up-slack-notifications
 type SetGroupSlackOptions struct {
-	Webhook                         *string `url:"webhook,omitempty" json:"webhook,omitempty"`
-	Username                        *string `url:"username,omitempty" json:"username,omitempty"`
-	Channel                         *string `url:"channel,omitempty" json:"channel,omitempty"`
-	NotifyOnlyBrokenPipelines       *bool   `url:"notify_only_broken_pipelines,omitempty" json:"notify_only_broken_pipelines,omitempty"`
-	BranchesToBeNotified            *string `url:"branches_to_be_notified,omitempty" json:"branches_to_be_notified,omitempty"`
-	LabelsToBeNotified              *string `url:"labels_to_be_notified,omitempty" json:"labels_to_be_notified,omitempty"`
-	LabelsToBeNotifiedBehavior      *string `url:"labels_to_be_notified_behavior,omitempty" json:"labels_to_be_notified_behavior,omitempty"`
-	PushChannel                     *string `url:"push_channel,omitempty" json:"push_channel,omitempty"`
-	IssueChannel                    *string `url:"issue_channel,omitempty" json:"issue_channel,omitempty"`
-	ConfidentialIssueChannel        *string `url:"confidential_issue_channel,omitempty" json:"confidential_issue_channel,omitempty"`
-	MergeRequestChannel             *string `url:"merge_request_channel,omitempty" json:"merge_request_channel,omitempty"`
-	NoteChannel                     *string `url:"note_channel,omitempty" json:"note_channel,omitempty"`
-	ConfidentialNoteChannel         *string `url:"confidential_note_channel,omitempty" json:"confidential_note_channel,omitempty"`
-	TagPushChannel                  *string `url:"tag_push_channel,omitempty" json:"tag_push_channel,omitempty"`
-	PipelineChannel                 *string `url:"pipeline_channel,omitempty" json:"pipeline_channel,omitempty"`
-	WikiPageChannel                 *string `url:"wiki_page_channel,omitempty" json:"wiki_page_channel,omitempty"`
-	DeploymentChannel               *string `url:"deployment_channel,omitempty" json:"deployment_channel,omitempty"`
-	IncidentChannel                 *string `url:"incident_channel,omitempty" json:"incident_channel,omitempty"`
-	AlertChannel                    *string `url:"alert_channel,omitempty" json:"alert_channel,omitempty"`
-	GroupMentionChannel             *string `url:"group_mention_channel,omitempty" json:"group_mention_channel,omitempty"`
-	GroupConfidentialMentionChannel *string `url:"group_confidential_mention_channel,omitempty" json:"group_confidential_mention_channel,omitempty"`
+	Webhook                             *string `url:"webhook,omitempty" json:"webhook,omitempty"`
+	Username                            *string `url:"username,omitempty" json:"username,omitempty"`
+	Channel                             *string `url:"channel,omitempty" json:"channel,omitempty"`
+	NotifyOnlyBrokenPipelines           *bool   `url:"notify_only_broken_pipelines,omitempty" json:"notify_only_broken_pipelines,omitempty"`
+	NotifyOnlyWhenPipelineStatusChanges *bool   `url:"notify_only_when_pipeline_status_changes,omitempty" json:"notify_only_when_pipeline_status_changes,omitempty"`
+	BranchesToBeNotified                *string `url:"branches_to_be_notified,omitempty" json:"branches_to_be_notified,omitempty"`
+	LabelsToBeNotified                  *string `url:"labels_to_be_notified,omitempty" json:"labels_to_be_notified,omitempty"`
+	LabelsToBeNotifiedBehavior          *string `url:"labels_to_be_notified_behavior,omitempty" json:"labels_to_be_notified_behavior,omitempty"`
+	AlertEvents                         *bool   `url:"alert_events,omitempty" json:"alert_events,omitempty"`
+	CommitEvents                        *bool   `url:"commit_events,omitempty" json:"commit_events,omitempty"`
+	PushChannel                         *string `url:"push_channel,omitempty" json:"push_channel,omitempty"`
+	PushEvents                          *bool   `url:"push_events,omitempty" json:"push_events,omitempty"`
+	IssueChannel                        *string `url:"issue_channel,omitempty" json:"issue_channel,omitempty"`
+	IssuesEvents                        *bool   `url:"issues_events,omitempty" json:"issues_events,omitempty"`
+	JobEvents                           *bool   `url:"job_events,omitempty" json:"job_events,omitempty"`
+	ConfidentialIssueChannel            *string `url:"confidential_issue_channel,omitempty" json:"confidential_issue_channel,omitempty"`
+	ConfidentialIssuesEvents            *bool   `url:"confidential_issues_events,omitempty" json:"confidential_issues_events,omitempty"`
+	MergeRequestChannel                 *string `url:"merge_request_channel,omitempty" json:"merge_request_channel,omitempty"`
+	MergeRequestsEvents                 *bool   `url:"merge_requests_events,omitempty" json:"merge_requests_events,omitempty"`
+	NoteChannel                         *string `url:"note_channel,omitempty" json:"note_channel,omitempty"`
+	NoteEvents                          *bool   `url:"note_events,omitempty" json:"note_events,omitempty"`
+	ConfidentialNoteChannel             *string `url:"confidential_note_channel,omitempty" json:"confidential_note_channel,omitempty"`
+	ConfidentialNoteEvents              *bool   `url:"confidential_note_events,omitempty" json:"confidential_note_events,omitempty"`
+	TagPushChannel                      *string `url:"tag_push_channel,omitempty" json:"tag_push_channel,omitempty"`
+	TagPushEvents                       *bool   `url:"tag_push_events,omitempty" json:"tag_push_events,omitempty"`
+	PipelineChannel                     *string `url:"pipeline_channel,omitempty" json:"pipeline_channel,omitempty"`
+	PipelineEvents                      *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
+	WikiPageChannel                     *string `url:"wiki_page_channel,omitempty" json:"wiki_page_channel,omitempty"`
+	WikiPageEvents                      *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
+	DeploymentChannel                   *string `url:"deployment_channel,omitempty" json:"deployment_channel,omitempty"`
+	DeploymentEvents                    *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
+	IncidentChannel                     *string `url:"incident_channel,omitempty" json:"incident_channel,omitempty"`
+	IncidentEvents                      *bool   `url:"incident_events,omitempty" json:"incident_events,omitempty"`
+	AlertChannel                        *string `url:"alert_channel,omitempty" json:"alert_channel,omitempty"`
+	GroupMentionChannel                 *string `url:"group_mention_channel,omitempty" json:"group_mention_channel,omitempty"`
+	GroupConfidentialMentionChannel     *string `url:"group_confidential_mention_channel,omitempty" json:"group_confidential_mention_channel,omitempty"`
+	UseInheritedSettings                *bool   `url:"use_inherited_settings,omitempty" json:"use_inherited_settings,omitempty"`
 }
 
 func (s *IntegrationsService) SetGroupSlackSettings(gid any, opt *SetGroupSlackOptions, options ...RequestOptionFunc) (*SlackIntegration, *Response, error) {
