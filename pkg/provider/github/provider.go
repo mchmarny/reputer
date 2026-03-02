@@ -162,12 +162,10 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 		"rate_remaining", r.Rate.Remaining)
 
 	a.Stats.Suspended = u.SuspendedAt != nil
-	a.Stats.StrongAuth = u.GetTwoFactorAuthentication()
 	a.Stats.CommitsVerified = a.Stats.UnverifiedCommits == 0 // not used by scoring; exposed in JSON for display
 	a.Stats.Followers = int64(u.GetFollowers())
 	a.Stats.Following = int64(u.GetFollowing())
 	a.Stats.PublicRepos = int64(u.GetPublicRepos())
-	a.Stats.PrivateRepos = u.GetTotalPrivateRepos()
 
 	dc := u.GetCreatedAt().Time
 	a.Stats.AgeDays = int64(math.Ceil(time.Now().UTC().Sub(dc).Hours() / hoursInDay))

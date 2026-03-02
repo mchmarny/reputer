@@ -40,9 +40,8 @@ func TestCalculateReputation(t *testing.T) {
 			author: &report.Author{
 				Username: "suspended",
 				Stats: &report.Stats{
-					Suspended:  true,
-					StrongAuth: true,
-					AgeDays:    1000,
+					Suspended: true,
+					AgeDays:   1000,
 				},
 			},
 			wantScore: 0,
@@ -52,7 +51,6 @@ func TestCalculateReputation(t *testing.T) {
 			author: &report.Author{
 				Username: "max",
 				Stats: &report.Stats{
-					StrongAuth:        true,
 					Commits:           50,
 					UnverifiedCommits: 0,
 					AgeDays:           730,
@@ -66,7 +64,6 @@ func TestCalculateReputation(t *testing.T) {
 					Followers:         100,
 					Following:         10,
 					PublicRepos:       30,
-					PrivateRepos:      15,
 					PRsMerged:         20,
 					PRsClosed:         0,
 					RecentPRRepoCount: 2,

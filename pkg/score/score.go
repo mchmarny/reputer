@@ -7,7 +7,7 @@ import (
 )
 
 // ModelVersion is the current scoring model version.
-const ModelVersion = "3.0.0"
+const ModelVersion = "3.1.0"
 
 const (
 	// Category weights (sum to 1.0).
@@ -29,11 +29,9 @@ const (
 	repoCountCeil         = 30.0
 	baseHalfLifeDays      = 90.0
 	minHalfLifeMultiple   = 0.25
-	provenanceFloor       = 0.1
 	minProportionCeil     = 0.05
 	minConfidenceCommits  = 30
 	confCommitsPerContrib = 10
-	noTFAMaxDiscount      = 0.5
 	prCountCeil           = 20.0
 	burstCeil             = 5.0
 	forkOriginalCeil      = 5.0
@@ -57,7 +55,6 @@ type CategoryWeight struct {
 // Signals holds the raw inputs to the reputation model.
 type Signals struct {
 	Suspended         bool  // Account suspended
-	StrongAuth        bool  // 2FA enabled
 	Commits           int64 // Author's commit count
 	UnverifiedCommits int64 // Commits without verified signatures
 	TotalCommits      int64 // Repo-wide total commits
@@ -68,7 +65,6 @@ type Signals struct {
 	Followers         int64 // GitHub follower count
 	Following         int64 // Following count (for ratio)
 	PublicRepos       int64 // Public repository count
-	PrivateRepos      int64 // Private repository count
 
 	// v3 signals
 	AuthorAssociation string // OWNER, MEMBER, COLLABORATOR, CONTRIBUTOR, FIRST_TIME_CONTRIBUTOR, NONE
@@ -105,25 +101,8 @@ func Compute(s Signals) float64 {
 	// --- Category 1: Code Provenance (0.30) ---
 	if s.Commits > 0 && s.TotalCommits > 0 {
 		verifiedRatio := float64(s.Commits-s.UnverifiedCommits) / float64(s.Commits)
-		proportion := float64(s.Commits) / float64(s.TotalCommits)
-		propCeil := math.Max(1.0/float64(max(s.TotalContributors, 1)), minProportionCeil)
-
-		securityMultiplier := 1.0
-		if !s.StrongAuth {
-			securityMultiplier = 1.0 - noTFAMaxDiscount*clampedRatio(proportion, propCeil)
-		}
-
-		rawScore := verifiedRatio * securityMultiplier
-		if s.StrongAuth && rawScore < provenanceFloor {
-			rawScore = provenanceFloor
-		}
-
-		rep += rawScore * provenanceWeight
-		slog.Debug(fmt.Sprintf("provenance: %.4f (verified=%.2f, multiplier=%.2f)",
-			rawScore*provenanceWeight, verifiedRatio, securityMultiplier))
-	} else if s.StrongAuth {
-		rep += provenanceFloor * provenanceWeight
-		slog.Debug(fmt.Sprintf("provenance: %.4f (2FA floor, no commits)", provenanceFloor*provenanceWeight))
+		rep += verifiedRatio * provenanceWeight
+		slog.Debug(fmt.Sprintf("provenance: %.4f (verified=%.2f)", verifiedRatio*provenanceWeight, verifiedRatio))
 	}
 
 	// --- Category 2: Identity (0.20) ---
@@ -198,7 +177,7 @@ func Compute(s Signals) float64 {
 			logCurve(ratio, followerRatioCeil)*followerWeight, ratio))
 	}
 
-	totalRepos := float64(s.PublicRepos + s.PrivateRepos)
+	totalRepos := float64(s.PublicRepos)
 	rep += logCurve(totalRepos, repoCountCeil) * repoCountWeight
 	slog.Debug(fmt.Sprintf("repos: %.4f (%d combined)",
 		logCurve(totalRepos, repoCountCeil)*repoCountWeight, int64(totalRepos)))
@@ -216,7 +195,7 @@ func Compute(s Signals) float64 {
 		slog.Debug(fmt.Sprintf("burst: %.4f (no recent PR repos)", burstWeight))
 	}
 
-	totalOwnedRepos := s.PublicRepos + s.PrivateRepos
+	totalOwnedRepos := s.PublicRepos
 	if totalOwnedRepos > 0 {
 		originalRepos := float64(totalOwnedRepos - s.ForkedRepos)
 		fScore := clampedRatio(originalRepos, forkOriginalCeil) * forkOnlyWeight

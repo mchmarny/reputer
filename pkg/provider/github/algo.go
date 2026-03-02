@@ -15,7 +15,6 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 
 	author.Reputation = score.Compute(score.Signals{
 		Suspended:         s.Suspended,
-		StrongAuth:        s.StrongAuth,
 		Commits:           s.Commits,
 		UnverifiedCommits: s.UnverifiedCommits,
 		TotalCommits:      totalCommits,
@@ -26,7 +25,6 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 		Followers:         s.Followers,
 		Following:         s.Following,
 		PublicRepos:       s.PublicRepos,
-		PrivateRepos:      s.PrivateRepos,
 		AuthorAssociation: s.AuthorAssociation,
 		HasBio:            s.HasBio,
 		HasCompany:        s.HasCompany,

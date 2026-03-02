@@ -136,13 +136,12 @@ func TestCompute(t *testing.T) {
 		},
 		{
 			name:      "suspended user",
-			signals:   Signals{Suspended: true, StrongAuth: true, AgeDays: 1000, TotalCommits: 100, TotalContributors: 5},
+			signals:   Signals{Suspended: true, AgeDays: 1000, TotalCommits: 100, TotalContributors: 5},
 			wantScore: 0.0,
 		},
 		{
 			name: "max signals",
 			signals: Signals{
-				StrongAuth:        true,
 				Commits:           50,
 				UnverifiedCommits: 0,
 				TotalCommits:      100,
@@ -158,7 +157,6 @@ func TestCompute(t *testing.T) {
 				Followers:         100,
 				Following:         10,
 				PublicRepos:       30,
-				PrivateRepos:      15,
 				PRsMerged:         100,
 				PRsClosed:         0,
 			},
@@ -181,7 +179,6 @@ func TestCompute(t *testing.T) {
 		{
 			name: "new legitimate contributor",
 			signals: Signals{
-				StrongAuth:        true,
 				AgeDays:           60,
 				HasBio:            true,
 				Commits:           5,
@@ -207,7 +204,7 @@ func TestCompute(t *testing.T) {
 				LastCommitDays:    5,
 				PublicRepos:       5,
 			},
-			wantScore: 0.64,
+			wantScore: 0.79,
 		},
 		{
 			name: "association FIRST_TIME_CONTRIBUTOR",
@@ -220,7 +217,7 @@ func TestCompute(t *testing.T) {
 				LastCommitDays:    1,
 				PublicRepos:       1,
 			},
-			wantScore: 0.54,
+			wantScore: 0.55,
 		},
 		{
 			name: "profile completeness 2/4",
@@ -246,7 +243,7 @@ func TestCompute(t *testing.T) {
 				LastCommitDays:    5,
 				PublicRepos:       10,
 			},
-			wantScore: 0.67,
+			wantScore: 0.82,
 		},
 		{
 			name: "fork-only account",
@@ -270,7 +267,7 @@ func TestCompute(t *testing.T) {
 				TotalContributors: 5,
 				LastCommitDays:    1,
 			},
-			wantScore: 0.51,
+			wantScore: 0.56,
 		},
 		{
 			name: "org member fallback no association",
@@ -283,7 +280,7 @@ func TestCompute(t *testing.T) {
 				LastCommitDays:    2,
 				PublicRepos:       8,
 			},
-			wantScore: 0.67,
+			wantScore: 0.82,
 		},
 	}
 
@@ -297,5 +294,5 @@ func TestCompute(t *testing.T) {
 }
 
 func TestModelVersion(t *testing.T) {
-	assert.Equal(t, "3.0.0", ModelVersion)
+	assert.Equal(t, "3.1.0", ModelVersion)
 }

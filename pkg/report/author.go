@@ -40,12 +40,10 @@ type AuthorContext struct {
 type Stats struct {
 	Suspended         bool  `json:"suspended,omitempty" yaml:"suspended,omitempty"`
 	CommitsVerified   bool  `json:"verified_commits,omitempty" yaml:"verifiedCommits,omitempty"`
-	StrongAuth        bool  `json:"strong_auth,omitempty" yaml:"strongAuth,omitempty"`
 	AgeDays           int64 `json:"age_days" yaml:"ageDays"`
 	Commits           int64 `json:"commits" yaml:"commits"`
 	UnverifiedCommits int64 `json:"unverified_commits" yaml:"unverifiedCommits"`
 	PublicRepos       int64 `json:"public_repos,omitempty" yaml:"publicRepos,omitempty"`
-	PrivateRepos      int64 `json:"private_repos,omitempty" yaml:"privateRepos,omitempty"`
 	Followers         int64 `json:"followers,omitempty" yaml:"followers,omitempty"`
 	Following         int64 `json:"following,omitempty" yaml:"following,omitempty"`
 	LastCommitDays    int64 `json:"last_commit_days,omitempty" yaml:"lastCommitDays,omitempty"`
