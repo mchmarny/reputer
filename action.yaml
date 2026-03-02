@@ -1,5 +1,5 @@
 name: 'Reputer'
-description: 'Post contributor reputation scores on pull requests'
+description: 'Post contributor reputation scores on pull requests with visual treatment'
 
 inputs:
   reputer-version:
