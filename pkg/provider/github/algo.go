@@ -12,7 +12,6 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 	}
 
 	s := author.Stats
-	hasCompany := author.Context != nil && author.Context.Company != ""
 
 	author.Reputation = score.Compute(score.Signals{
 		Suspended:         s.Suspended,
@@ -30,7 +29,7 @@ func calculateReputation(author *report.Author, totalCommits int64, totalContrib
 		PrivateRepos:      s.PrivateRepos,
 		AuthorAssociation: s.AuthorAssociation,
 		HasBio:            s.HasBio,
-		HasCompany:        hasCompany,
+		HasCompany:        s.HasCompany,
 		HasLocation:       s.HasLocation,
 		HasWebsite:        s.HasWebsite,
 		PRsMerged:         s.PRsMerged,

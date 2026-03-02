@@ -54,6 +54,7 @@ type Stats struct {
 	// v3 fields
 	AuthorAssociation string `json:"author_association,omitempty" yaml:"authorAssociation,omitempty"`
 	HasBio            bool   `json:"has_bio,omitempty" yaml:"hasBio,omitempty"`
+	HasCompany        bool   `json:"has_company,omitempty" yaml:"hasCompany,omitempty"`
 	HasLocation       bool   `json:"has_location,omitempty" yaml:"hasLocation,omitempty"`
 	HasWebsite        bool   `json:"has_website,omitempty" yaml:"hasWebsite,omitempty"`
 	PRsMerged         int64  `json:"prs_merged,omitempty" yaml:"prsMerged,omitempty"`

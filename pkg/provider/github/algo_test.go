@@ -51,7 +51,6 @@ func TestCalculateReputation(t *testing.T) {
 			name: "max score",
 			author: &report.Author{
 				Username: "max",
-				Context:  &report.AuthorContext{Company: "ACME"},
 				Stats: &report.Stats{
 					StrongAuth:        true,
 					Commits:           50,
@@ -60,6 +59,7 @@ func TestCalculateReputation(t *testing.T) {
 					OrgMember:         true,
 					AuthorAssociation: "MEMBER",
 					HasBio:            true,
+					HasCompany:        true,
 					HasLocation:       true,
 					HasWebsite:        true,
 					LastCommitDays:    0,
