@@ -61,6 +61,7 @@ type Pages struct {
 	IsUniqueDomainEnabled bool               `json:"is_unique_domain_enabled"`
 	ForceHTTPS            bool               `json:"force_https"`
 	Deployments           []*PagesDeployment `json:"deployments"`
+	PrimaryDomain         string             `json:"primary_domain"`
 }
 
 // PagesDeployment represents a Pages deployment.
@@ -94,8 +95,9 @@ func (s *PagesService) GetPages(gid any, options ...RequestOptionFunc) (*Pages, 
 // GitLab API docs:
 // https://docs.gitlab.com/api/pages/#update-pages-settings-for-a-project
 type UpdatePagesOptions struct {
-	PagesUniqueDomainEnabled *bool `url:"pages_unique_domain_enabled,omitempty" json:"pages_unique_domain_enabled,omitempty"`
-	PagesHTTPSOnly           *bool `url:"pages_https_only,omitempty" json:"pages_https_only,omitempty"`
+	PagesUniqueDomainEnabled *bool   `url:"pages_unique_domain_enabled,omitempty" json:"pages_unique_domain_enabled,omitempty"`
+	PagesHTTPSOnly           *bool   `url:"pages_https_only,omitempty" json:"pages_https_only,omitempty"`
+	PagesPrimaryDomain       *string `url:"pages_primary_domain,omitempty" json:"pages_primary_domain,omitempty"`
 }
 
 func (s *PagesService) UpdatePages(pid any, opt UpdatePagesOptions, options ...RequestOptionFunc) (*Pages, *Response, error) {
