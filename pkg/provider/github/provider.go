@@ -119,7 +119,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 
 	for _, a := range list {
 		g.Go(func() error {
-			if err := loadAuthor(gctx, client, a, q.Stats, totalCommitCounter, totalContributors, q.Owner, q.Name); err != nil {
+			if err := loadAuthor(gctx, client, a, q.Stats, totalCommitCounter, totalContributors, q.Owner, q.Name, q.TrustedOrgs); err != nil {
 				return err
 			}
 			mu.Lock()
@@ -140,7 +140,7 @@ func ListAuthors(ctx context.Context, q report.Query) (*report.Report, error) {
 }
 
 // loadAuthor loads the author details.
-func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool, totalCommits int64, totalContributors int, owner, repoName string) error {
+func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats bool, totalCommits int64, totalContributors int, owner, repoName string, trustedOrgs []string) error {
 	if client == nil {
 		return fmt.Errorf("client must be specified")
 	}
@@ -190,6 +190,20 @@ func loadAuthor(ctx context.Context, client *hub.Client, a *report.Author, stats
 		slog.Debug(fmt.Sprintf("org membership check [%s/%s]: %v", owner, a.Username, memberErr))
 	} else {
 		a.Stats.OrgMember = isMember
+	}
+
+	// Trusted org membership check -- short-circuit on first match.
+	for _, org := range trustedOrgs {
+		isTrusted, tResp, tErr := client.Organizations.IsMember(ctx, org, a.Username)
+		waitForRateLimit(tResp)
+		if tErr != nil {
+			slog.Debug(fmt.Sprintf("trusted org check [%s/%s]: %v", org, a.Username, tErr))
+			continue
+		}
+		if isTrusted {
+			a.Stats.TrustedOrgMember = true
+			break
+		}
 	}
 
 	// Profile completeness (from existing Users.Get response).

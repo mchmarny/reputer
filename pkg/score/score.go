@@ -7,34 +7,35 @@ import (
 )
 
 // ModelVersion is the current scoring model version.
-const ModelVersion = "3.1.0"
+const ModelVersion = "3.2.0"
 
 const (
 	// Category weights (sum to 1.0).
-	provenanceWeight  = 0.30
-	ageWeight         = 0.10
+	provenanceWeight  = 0.15
+	ageWeight         = 0.15
 	associationWeight = 0.05
 	profileWeight     = 0.05
-	proportionWeight  = 0.10
+	proportionWeight  = 0.15
 	recencyWeight     = 0.05
 	prAcceptWeight    = 0.05
 	followerWeight    = 0.05
-	repoCountWeight   = 0.05
+	repoCountWeight   = 0.10
 	burstWeight       = 0.10
 	forkOnlyWeight    = 0.10
 
 	// Ceilings and parameters.
-	ageCeilDays           = 730
-	followerRatioCeil     = 10.0
-	repoCountCeil         = 30.0
-	baseHalfLifeDays      = 90.0
-	minHalfLifeMultiple   = 0.25
-	minProportionCeil     = 0.05
-	minConfidenceCommits  = 30
-	confCommitsPerContrib = 10
-	prCountCeil           = 20.0
-	burstCeil             = 5.0
-	forkOriginalCeil      = 5.0
+	ageCeilDays              = 730
+	verificationMaturityCeil = 730.0
+	followerRatioCeil        = 10.0
+	repoCountCeil            = 30.0
+	baseHalfLifeDays         = 90.0
+	minHalfLifeMultiple      = 0.25
+	minProportionCeil        = 0.05
+	minConfidenceCommits     = 30
+	confCommitsPerContrib    = 10
+	prCountCeil              = 20.0
+	burstCeil                = 5.0
+	forkOriginalCeil         = 5.0
 )
 
 // Exported category weights derived from signal constants above.
@@ -76,6 +77,7 @@ type Signals struct {
 	PRsClosed         int64  // Global closed-without-merge PR count
 	RecentPRRepoCount int64  // Distinct repos with PR events in last 90 days
 	ForkedRepos       int64  // Owned repos that are forks
+	TrustedOrgMember  bool   // Member of a caller-specified trusted org
 }
 
 // Categories returns the model's scoring categories with their weights.
@@ -98,19 +100,21 @@ func Compute(s Signals) float64 {
 
 	var rep float64
 
-	// --- Category 1: Code Provenance (0.30) ---
+	// --- Category 1: Code Provenance (0.15) ---
 	if s.Commits > 0 && s.TotalCommits > 0 {
 		verifiedRatio := float64(s.Commits-s.UnverifiedCommits) / float64(s.Commits)
-		rep += verifiedRatio * provenanceWeight
-		slog.Debug(fmt.Sprintf("provenance: %.4f (verified=%.2f)", verifiedRatio*provenanceWeight, verifiedRatio))
+		maturity := logCurve(float64(s.AgeDays), verificationMaturityCeil)
+		rep += verifiedRatio * maturity * provenanceWeight
+		slog.Debug(fmt.Sprintf("provenance: %.4f (verified=%.2f, maturity=%.2f)",
+			verifiedRatio*maturity*provenanceWeight, verifiedRatio, maturity))
 	}
 
-	// --- Category 2: Identity (0.20) ---
+	// --- Category 2: Identity (0.25) ---
 	ageScore := logCurve(float64(s.AgeDays), ageCeilDays) * ageWeight
 	rep += ageScore
 	slog.Debug(fmt.Sprintf("age: %.4f (%d days)", ageScore, s.AgeDays))
 
-	assocScore := associationScore(s.AuthorAssociation, s.OrgMember) * associationWeight
+	assocScore := associationScore(s.AuthorAssociation, s.OrgMember, s.TrustedOrgMember) * associationWeight
 	rep += assocScore
 	slog.Debug(fmt.Sprintf("association: %.4f (%s)", assocScore, s.AuthorAssociation))
 
@@ -131,7 +135,7 @@ func Compute(s Signals) float64 {
 	rep += profScore
 	slog.Debug(fmt.Sprintf("profile: %.4f (%d/4 fields)", profScore, profileCount))
 
-	// --- Category 3: Engagement (0.20) ---
+	// --- Category 3: Engagement (0.25) ---
 	if s.Commits > 0 && s.TotalCommits > 0 {
 		proportion := float64(s.Commits) / float64(s.TotalCommits)
 		propCeil := math.Max(1.0/float64(max(s.TotalContributors, 1)), minProportionCeil)
@@ -169,7 +173,7 @@ func Compute(s Signals) float64 {
 			prScore, mergeRate, confidence))
 	}
 
-	// --- Category 4: Community (0.10) ---
+	// --- Category 4: Community (0.15) ---
 	if s.Following > 0 {
 		ratio := float64(s.Followers) / float64(s.Following)
 		rep += logCurve(ratio, followerRatioCeil) * followerWeight
@@ -211,24 +215,31 @@ func Compute(s Signals) float64 {
 
 // associationScore maps GitHub's author_association to a [0, 1] score.
 // Falls back to OrgMember boolean when association is empty.
-func associationScore(assoc string, orgMember bool) float64 {
+// When trustedOrgMember is true, the score is floored at COLLABORATOR level (0.8).
+func associationScore(assoc string, orgMember, trustedOrgMember bool) float64 {
+	var base float64
 	switch assoc {
 	case "OWNER", "MEMBER":
-		return 1.0
+		base = 1.0
 	case "COLLABORATOR":
-		return 0.8
+		base = 0.8
 	case "CONTRIBUTOR":
-		return 0.5
+		base = 0.5
 	case "FIRST_TIME_CONTRIBUTOR":
-		return 0.2
+		base = 0.2
 	case "NONE":
-		return 0.0
+		base = 0.0
 	default:
 		if orgMember {
-			return 1.0
+			base = 1.0
 		}
-		return 0.0
 	}
+
+	if trustedOrgMember && base < 0.8 {
+		base = 0.8
+	}
+
+	return base
 }
 
 // clampedRatio maps val linearly into [0.0, 1.0] with ceil as the saturation point.

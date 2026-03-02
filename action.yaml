@@ -18,6 +18,10 @@ inputs:
     description: 'Score >= this (but < green) shows yellow; below shows red (0-100)'
     required: false
     default: '40'
+  trusted-orgs:
+    description: 'Org names whose members get a scoring boost (one per line or comma-separated)'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -74,7 +78,12 @@ runs:
     run: |
       set -euo pipefail
       REPO="github.com/${{ github.repository }}"
-      reputer --repo "${REPO}" --stats --file /tmp/report.json || true
+      ARGS="--repo ${REPO} --stats --file /tmp/report.json"
+      while IFS= read -r org; do
+        org=$(echo "${org}" | xargs)
+        [ -n "${org}" ] && ARGS="${ARGS} --trusted-orgs ${org}"
+      done < <(echo "${{ inputs.trusted-orgs }}" | tr ',' '\n')
+      reputer ${ARGS} || true
       if [ -f /tmp/report.json ]; then
         echo "has_report=true" >> "$GITHUB_OUTPUT"
       else

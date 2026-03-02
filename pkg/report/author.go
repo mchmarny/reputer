@@ -59,4 +59,5 @@ type Stats struct {
 	PRsClosed         int64  `json:"prs_closed,omitempty" yaml:"prsClosed,omitempty"`
 	RecentPRRepoCount int64  `json:"recent_pr_repo_count,omitempty" yaml:"recentPRRepoCount,omitempty"`
 	ForkedRepos       int64  `json:"forked_repos,omitempty" yaml:"forkedRepos,omitempty"`
+	TrustedOrgMember  bool   `json:"trusted_org_member,omitempty" yaml:"trustedOrgMember,omitempty"`
 }

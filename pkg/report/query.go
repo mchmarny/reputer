@@ -56,6 +56,9 @@ type Query struct {
 	// Name is the name of the repo.
 	// Will be parsed from Repo.
 	Name string
+
+	// TrustedOrgs lists organizations whose members receive a scoring boost.
+	TrustedOrgs []string
 }
 
 // String returns a string representation of the query.

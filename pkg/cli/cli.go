@@ -11,17 +11,27 @@ import (
 	"github.com/mchmarny/reputer/pkg/reporter"
 )
 
+// stringSlice implements flag.Value for repeated string flags.
+type stringSlice []string
+
+func (s *stringSlice) String() string { return fmt.Sprintf("%v", *s) }
+func (s *stringSlice) Set(v string) error {
+	*s = append(*s, v)
+	return nil
+}
+
 const usageMsg = `
 Usage: reputer [options]
 
 Options:
-  --repo     Repo URI (required, e.g. github.com/owner/repo)
-  --commit   Commit at which to end the report (optional, inclusive)
-  --stats    Includes stats used to calculate reputation (optional)
-  --file     Write output to file at this path (optional, stdout if not specified)
-  --format   Output format: json or yaml (optional, default: json)
-  --debug    Turns logging verbose (optional)
-  --version  Prints version only (optional)
+  --repo          Repo URI (required, e.g. github.com/owner/repo)
+  --commit        Commit at which to end the report (optional, inclusive)
+  --stats         Includes stats used to calculate reputation (optional)
+  --file          Write output to file at this path (optional, stdout if not specified)
+  --format        Output format: json or yaml (optional, default: json)
+  --trusted-orgs  Org whose members get a scoring boost (repeatable, optional)
+  --debug         Turns logging verbose (optional)
+  --version       Prints version only (optional)
 
 `
 
@@ -31,13 +41,14 @@ var (
 	commit  = "unknown"
 	date    = "unknown"
 
-	repo      string
-	commitSHA string
-	file      string
-	format    string
-	isDebug   bool
-	isVersion bool
-	withStats bool
+	repo        string
+	commitSHA   string
+	file        string
+	format      string
+	trustedOrgs stringSlice
+	isDebug     bool
+	isVersion   bool
+	withStats   bool
 )
 
 func init() {
@@ -46,6 +57,7 @@ func init() {
 	flag.BoolVar(&withStats, "stats", false, "")
 	flag.StringVar(&file, "file", "", "")
 	flag.StringVar(&format, "format", "json", "")
+	flag.Var(&trustedOrgs, "trusted-orgs", "")
 	flag.BoolVar(&isDebug, "debug", false, "")
 	flag.BoolVar(&isVersion, "version", false, "")
 }
@@ -89,11 +101,12 @@ func Execute() {
 	}
 
 	opt := &reporter.ListCommitAuthorsOptions{
-		Repo:   repo,
-		Commit: commitSHA,
-		Stats:  withStats,
-		File:   file,
-		Format: format,
+		Repo:        repo,
+		Commit:      commitSHA,
+		Stats:       withStats,
+		File:        file,
+		Format:      format,
+		TrustedOrgs: trustedOrgs,
 	}
 
 	if err := reporter.ListCommitAuthors(context.Background(), opt); err != nil {

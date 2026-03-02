@@ -48,6 +48,7 @@ reputer [flags]
 | `--stats` | Include stats used to calculate reputation (optional) |
 | `--file` | Write output to file at this path (optional, stdout if not specified) |
 | `--format` | Output format: `json` or `yaml` (optional, default: `json`) |
+| `--trusted-orgs` | Org whose members get a scoring boost (repeatable, optional) |
 | `--debug` | Turn on verbose logging (optional) |
 | `--version` | Print version only (optional) |
 
@@ -68,12 +69,12 @@ Output:
   "total_commits": 338,
   "total_contributors": 4,
   "meta": {
-    "model_version": "3.1.0",
+    "model_version": "3.2.0",
     "categories": [
-      { "name": "code_provenance", "weight": 0.3 },
-      { "name": "identity", "weight": 0.2 },
-      { "name": "engagement", "weight": 0.2 },
-      { "name": "community", "weight": 0.1 },
+      { "name": "code_provenance", "weight": 0.15 },
+      { "name": "identity", "weight": 0.25 },
+      { "name": "engagement", "weight": 0.25 },
+      { "name": "community", "weight": 0.15 },
       { "name": "behavioral", "weight": 0.2 }
     ]
   },
@@ -126,31 +127,31 @@ With `--stats`:
 
 ## Scoring
 
-Reputation is calculated using a **v3 risk-weighted categorical model** (model version `3.1.0`). Signals are grouped into five categories ranked by threat-model priority. Suspended users always score `0`.
+Reputation is calculated using a **v3 risk-weighted categorical model** (model version `3.2.0`). Signals are grouped into five categories ranked by threat-model priority. Suspended users always score `0`.
 
 ### Categories
 
 | Category | Weight | Signals |
 |----------|--------|---------|
-| Code Provenance | 0.30 | Commit verification ratio |
-| Identity | 0.20 | Account age, author association, profile completeness |
-| Engagement | 0.20 | Commit proportion, recency, PR acceptance rate |
-| Community | 0.10 | Follower/following ratio, repository count |
+| Code Provenance | 0.15 | Verification ratio × maturity factor |
+| Identity | 0.25 | Account age, author association, profile completeness |
+| Engagement | 0.25 | Commit proportion, recency, PR acceptance rate |
+| Community | 0.15 | Follower/following ratio, repository count |
 | Behavioral | 0.20 | Cross-repo burst detection, fork-only ratio |
 
 ### Signals
 
 | Signal | Weight | Ceiling / Curve | Details |
 |--------|--------|-----------------|---------|
-| Commit verification | 0.30 | verified/total ratio | Pure ratio of verified commits to total author commits |
-| Account age | 0.10 | 730 days, log curve | Diminishing returns — early days matter more |
-| Author association | 0.05 | enum mapping | OWNER/MEMBER→1.0, COLLABORATOR→0.8, CONTRIBUTOR→0.5, FIRST_TIME→0.2, NONE→0.0. Falls back to org membership. |
+| Commit verification | 0.15 | ratio × maturity | Verification ratio scaled by account-age maturity (log curve, 730-day ceiling) |
+| Account age | 0.15 | 730 days, log curve | Diminishing returns — early days matter more |
+| Author association | 0.05 | enum mapping | OWNER/MEMBER→1.0, COLLABORATOR→0.8, CONTRIBUTOR→0.5, FIRST_TIME→0.2, NONE→0.0. Falls back to org membership. Trusted org members are floored at COLLABORATOR (0.8). |
 | Profile completeness | 0.05 | 4 fields, linear | Bio, company, location, website — count of filled fields / 4 |
-| Commit proportion | 0.10 | adaptive ceiling | Scaled by repo confidence (min 30 commits) |
+| Commit proportion | 0.15 | adaptive ceiling | Scaled by repo confidence (min 30 commits) |
 | Recency | 0.05 | exponential decay | Base half-life of 90 days, adjusted by contributor count |
 | PR acceptance rate | 0.05 | 20 PRs, log curve | `merged / (merged + closed)` with confidence scaling |
 | Follower ratio | 0.05 | 10:1 ratio, log curve | `followers / following`; skipped if following is 0 |
-| Repository count | 0.05 | 30 repos, log curve | Public repositories |
+| Repository count | 0.10 | 30 repos, log curve | Public repositories |
 | Cross-repo burst | 0.10 | 5.0 rate ceiling | Penalty for high PR activity across many repos relative to account age |
 | Fork-only ratio | 0.10 | 5 original repos | Accounts with only forked repos and no original work score 0 |
 
@@ -184,6 +185,7 @@ jobs:
 | `reputer-version` | string | `latest` | Reputer release version to install (e.g. `v0.2.4`) |
 | `score-green` | string | `70` | Score >= this shows green |
 | `score-yellow` | string | `40` | Score >= this (but < green) shows yellow; below shows red |
+| `trusted-orgs` | string | `` | Org names whose members get a scoring boost (one per line or comma-separated) |
 
 The caller's `permissions` block grants `pull-requests: write` and `contents: read` to the automatic `GITHUB_TOKEN`. No additional secrets are needed.
 
