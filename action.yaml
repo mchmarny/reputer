@@ -128,6 +128,7 @@ runs:
 
         const rows = [
           `| Author Association | ${s.author_association || 'NONE'} |`,
+          `| Trusted Org Member | ${s.trusted_org_member ? 'Yes' : 'No'} |`,
           `| Account Age | ${Number(s.age_days).toLocaleString()} days |`,
           `| Verified Commits | ${s.commits - s.unverified_commits}/${s.commits} |`,
           `| PRs Merged | ${Number(s.prs_merged).toLocaleString()} |`,
