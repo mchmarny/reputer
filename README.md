@@ -184,6 +184,8 @@ jobs:
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
 | `reputer-version` | string | `latest` | Reputer release version to install (e.g. `v0.2.4`) |
+| `score-green` | string | `70` | Score >= this shows green |
+| `score-yellow` | string | `40` | Score >= this (but < green) shows yellow; below shows red |
 
 The caller's `permissions` block grants `pull-requests: write` and `contents: read` to the automatic `GITHUB_TOKEN`. No additional secrets are needed.
 

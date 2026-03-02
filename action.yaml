@@ -10,6 +10,14 @@ inputs:
     description: 'GitHub token for API access and PR comments'
     required: false
     default: ${{ github.token }}
+  score-green:
+    description: 'Score >= this shows green (0-100)'
+    required: false
+    default: '70'
+  score-yellow:
+    description: 'Score >= this (but < green) shows yellow; below shows red (0-100)'
+    required: false
+    default: '40'
 
 runs:
   using: 'composite'
@@ -76,6 +84,9 @@ runs:
   - name: Post reputation comment
     if: steps.reputer.outputs.has_report == 'true'
     uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8.0.0
+    env:
+      SCORE_GREEN: ${{ inputs.score-green }}
+      SCORE_YELLOW: ${{ inputs.score-yellow }}
     with:
       script: |
         const fs = require('fs');
@@ -100,8 +111,13 @@ runs:
 
         const s = contributor.stats;
         const score = (contributor.reputation * 100).toFixed(1);
+
+        const greenThreshold = Number(process.env.SCORE_GREEN) || 70;
+        const yellowThreshold = Number(process.env.SCORE_YELLOW) || 40;
+        const scoreNum = parseFloat(score);
+        const icon = scoreNum >= greenThreshold ? '\u{1F7E2}' : scoreNum >= yellowThreshold ? '\u{1F7E1}' : '\u{1F534}';
+
         const rows = [
-          `| **Score** | ${score}% |`,
           `| Author Association | ${s.author_association || 'NONE'} |`,
           `| Account Age | ${Number(s.age_days).toLocaleString()} days |`,
           `| 2FA Enabled | ${s.strong_auth ? 'Yes' : 'No'} |`,
@@ -116,6 +132,8 @@ runs:
 
         const body = [
           '### Contributor Reputation',
+          '',
+          `${icon} **Score: ${score}%**`,
           '',
           '| Metric | Value |',
           '|--------|-------|',
