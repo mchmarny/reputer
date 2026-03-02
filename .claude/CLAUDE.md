@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-`reputer` is a CLI tool that calculates contributor reputation scores from Git provider APIs (GitHub, GitLab). It uses graduated proportional scoring — each signal contributes linearly between 0 and its weight ceiling, summing to a max of 1.0.
+`reputer` is a CLI tool that calculates contributor reputation scores from Git provider APIs (GitHub, GitLab). It uses a v3 risk-weighted categorical model with five categories (code provenance, identity, engagement, community, behavioral) — each signal contributes between 0 and its weight ceiling, summing to a max of 1.0.
 
 ## Build & Test Commands
 
@@ -28,7 +28,7 @@ pkg/
   cli/                  CLI argument parsing and execution
   logging/              Structured logging (log/slog wrapper)
   provider/             Provider abstraction (routes queries to backend)
-    github/             GitHub: API client, reputation algo, tests
+    github/             GitHub: API client, signal fetches, reputation algo, tests
     gitlab/             GitLab: stub provider (documented TODO)
   report/               Data model (Author, Stats, Report, Query)
   reporter/             Orchestration (ListCommitAuthors, options)

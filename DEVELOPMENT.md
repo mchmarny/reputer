@@ -124,7 +124,7 @@ Data model types: `Author`, `Stats`, `Report`, `Query`. Pure data structures wit
 Orchestration layer that coordinates providers and produces reports. Contains `ListCommitAuthors` and configuration options. Supports JSON and YAML output formats.
 
 #### Score (`pkg/score/`)
-Standalone scoring model implementing the v2 risk-weighted categorical algorithm. Exposes `Compute(Signals)`, category weights, and model version. No external dependencies.
+Standalone scoring model implementing the v3 risk-weighted categorical algorithm with five categories: code provenance, identity, engagement, community, and behavioral. Exposes `Compute(Signals)`, category weights, and model version. No external dependencies.
 
 ### Data Flow
 
