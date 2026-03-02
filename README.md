@@ -189,6 +189,8 @@ jobs:
 
 The caller's `permissions` block grants `pull-requests: write` and `contents: read` to the automatic `GITHUB_TOKEN`. No additional secrets are needed.
 
+> **Rate limits:** The default `GITHUB_TOKEN` allows 1,000 API requests/hour. Each contributor requires ~8+ API calls (more with `trusted-orgs`). For repos with many contributors, use a Personal Access Token (5,000 requests/hour) by passing it via the `github-token` input and storing it as a repository secret.
+
 ### Behavior
 
 1. Installs reputer (pinned version or latest release, with checksum verification)
