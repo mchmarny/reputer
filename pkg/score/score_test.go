@@ -7,13 +7,13 @@ import (
 )
 
 func TestCategoryWeightsSum(t *testing.T) {
-	sum := CategoryProvenanceWeight + CategoryIdentityWeight + CategoryEngagementWeight + CategoryCommunityWeight + CategoryBehavioralWeight
+	sum := CategoryProvenanceWeight + CategoryIdentityWeight + CategoryEngagementWeight + CategoryCommunityWeight
 	assert.InDelta(t, 1.0, sum, 0.001, "category weights must sum to 1.0, got %f", sum)
 }
 
 func TestCategories(t *testing.T) {
 	cats := Categories()
-	assert.Len(t, cats, 5)
+	assert.Len(t, cats, 4)
 	var total float64
 	for _, c := range cats {
 		assert.NotEmpty(t, c.Name)
@@ -98,31 +98,6 @@ func TestExpDecay(t *testing.T) {
 	}
 }
 
-func TestAssociationScore(t *testing.T) {
-	tests := []struct {
-		name      string
-		assoc     string
-		orgMember bool
-		want      float64
-	}{
-		{"OWNER", "OWNER", false, 1.0},
-		{"MEMBER", "MEMBER", false, 1.0},
-		{"COLLABORATOR", "COLLABORATOR", false, 0.8},
-		{"CONTRIBUTOR", "CONTRIBUTOR", false, 0.5},
-		{"FIRST_TIME_CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", false, 0.2},
-		{"NONE", "NONE", false, 0.0},
-		{"empty with org", "", true, 1.0},
-		{"empty without org", "", false, 0.0},
-		{"unknown", "UNKNOWN", false, 0.0},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := associationScore(tt.assoc, tt.orgMember)
-			assert.InDelta(t, tt.want, got, 0.001)
-		})
-	}
-}
-
 func TestCompute(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -132,7 +107,7 @@ func TestCompute(t *testing.T) {
 		{
 			name:      "zero-value signals",
 			signals:   Signals{TotalCommits: 100, TotalContributors: 10},
-			wantScore: 0.15,
+			wantScore: 0.10,
 		},
 		{
 			name:      "suspended user",
@@ -149,141 +124,101 @@ func TestCompute(t *testing.T) {
 				TotalContributors: 5,
 				AgeDays:           730,
 				OrgMember:         true,
-				AuthorAssociation: "OWNER",
-				HasBio:            true,
-				HasCompany:        true,
-				HasLocation:       true,
-				HasWebsite:        true,
 				LastCommitDays:    0,
 				Followers:         100,
 				Following:         10,
 				PublicRepos:       30,
 				PrivateRepos:      15,
-				PRsMerged:         100,
-				PRsClosed:         0,
 			},
 			wantScore: 1.00,
 		},
 		{
-			name: "hackerbot-claw profile",
-			signals: Signals{
-				AgeDays:           7,
-				TotalCommits:      50,
-				TotalContributors: 10,
-				Commits:           5,
-				UnverifiedCommits: 5,
-				RecentPRRepoCount: 7,
-				PublicRepos:       7,
-				ForkedRepos:       7,
-			},
-			wantScore: 0.16,
+			name:      "org member only",
+			signals:   Signals{OrgMember: true, TotalCommits: 100, TotalContributors: 10},
+			wantScore: 0.20,
 		},
 		{
-			name: "new legitimate contributor",
+			name: "2FA floor only",
 			signals: Signals{
 				StrongAuth:        true,
-				AgeDays:           60,
-				HasBio:            true,
-				Commits:           5,
-				UnverifiedCommits: 0,
-				TotalCommits:      50,
-				TotalContributors: 5,
-				LastCommitDays:    3,
-				PRsMerged:         8,
-				PRsClosed:         2,
-				PublicRepos:       3,
-				RecentPRRepoCount: 2,
-			},
-			wantScore: 0.66,
-		},
-		{
-			name: "association CONTRIBUTOR",
-			signals: Signals{
-				AuthorAssociation: "CONTRIBUTOR",
-				AgeDays:           365,
 				Commits:           10,
+				UnverifiedCommits: 10,
 				TotalCommits:      100,
 				TotalContributors: 10,
-				LastCommitDays:    5,
-				PublicRepos:       5,
 			},
-			wantScore: 0.64,
+			wantScore: 0.29,
 		},
 		{
-			name: "association FIRST_TIME_CONTRIBUTOR",
+			name: "no 2FA core contributor all signed",
 			signals: Signals{
-				AuthorAssociation: "FIRST_TIME_CONTRIBUTOR",
-				AgeDays:           30,
-				Commits:           1,
-				TotalCommits:      100,
-				TotalContributors: 10,
-				LastCommitDays:    1,
-				PublicRepos:       1,
-			},
-			wantScore: 0.54,
-		},
-		{
-			name: "profile completeness 2/4",
-			signals: Signals{
-				HasBio:            true,
-				HasLocation:       true,
-				AgeDays:           200,
-				TotalCommits:      100,
-				TotalContributors: 10,
-				PublicRepos:       5,
+				StrongAuth:        false,
+				Commits:           10,
+				UnverifiedCommits: 0,
+				TotalCommits:      20,
+				TotalContributors: 2,
 			},
 			wantScore: 0.38,
 		},
 		{
-			name: "high PR acceptance rate",
+			name: "no 2FA peripheral all signed",
 			signals: Signals{
-				PRsMerged:         50,
-				PRsClosed:         2,
-				AgeDays:           365,
-				Commits:           20,
+				StrongAuth:        false,
+				Commits:           1,
+				UnverifiedCommits: 0,
 				TotalCommits:      100,
-				TotalContributors: 10,
-				LastCommitDays:    5,
-				PublicRepos:       10,
+				TotalContributors: 20,
 			},
-			wantScore: 0.67,
+			wantScore: 0.43,
 		},
 		{
-			name: "fork-only account",
+			name:      "age 30 days only",
+			signals:   Signals{AgeDays: 30, TotalCommits: 100, TotalContributors: 10},
+			wantScore: 0.18,
+		},
+		{
+			name:      "age 365 days only",
+			signals:   Signals{AgeDays: 365, TotalCommits: 100, TotalContributors: 10},
+			wantScore: 0.23,
+		},
+		{
+			name:      "follower ratio 3:1",
+			signals:   Signals{Followers: 30, Following: 10, TotalCommits: 100, TotalContributors: 10},
+			wantScore: 0.16,
+		},
+		{
+			name:      "5 repos combined",
+			signals:   Signals{PublicRepos: 3, PrivateRepos: 2, TotalCommits: 100, TotalContributors: 10},
+			wantScore: 0.13,
+		},
+		{
+			name: "engagement only - at ceiling",
 			signals: Signals{
-				AgeDays:           100,
-				PublicRepos:       10,
-				ForkedRepos:       10,
+				Commits:           10,
+				LastCommitDays:    0,
 				TotalCommits:      100,
 				TotalContributors: 10,
 			},
-			wantScore: 0.25,
+			wantScore: 0.42,
 		},
 		{
-			name: "burst rate high",
+			name: "low confidence repo",
 			signals: Signals{
-				AgeDays:           14,
-				RecentPRRepoCount: 10,
-				PublicRepos:       10,
 				Commits:           3,
-				TotalCommits:      50,
-				TotalContributors: 5,
-				LastCommitDays:    1,
+				LastCommitDays:    0,
+				TotalCommits:      5,
+				TotalContributors: 3,
 			},
-			wantScore: 0.51,
+			wantScore: 0.30,
 		},
 		{
-			name: "org member fallback no association",
+			name: "recency 90 days solo repo",
 			signals: Signals{
-				OrgMember:         true,
-				AgeDays:           500,
-				Commits:           20,
-				TotalCommits:      100,
-				TotalContributors: 10,
-				LastCommitDays:    2,
-				PublicRepos:       8,
+				Commits:           5,
+				LastCommitDays:    90,
+				TotalCommits:      10,
+				TotalContributors: 1,
 			},
-			wantScore: 0.67,
+			wantScore: 0.34,
 		},
 	}
 
@@ -297,5 +232,5 @@ func TestCompute(t *testing.T) {
 }
 
 func TestModelVersion(t *testing.T) {
-	assert.Equal(t, "3.0.0", ModelVersion)
+	assert.Equal(t, "2.0.0", ModelVersion)
 }

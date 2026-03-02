@@ -50,4 +50,14 @@ type Stats struct {
 	Following         int64 `json:"following,omitempty" yaml:"following,omitempty"`
 	LastCommitDays    int64 `json:"last_commit_days,omitempty" yaml:"lastCommitDays,omitempty"`
 	OrgMember         bool  `json:"org_member,omitempty" yaml:"orgMember,omitempty"`
+
+	// v3 fields
+	AuthorAssociation string `json:"author_association,omitempty" yaml:"authorAssociation,omitempty"`
+	HasBio            bool   `json:"has_bio,omitempty" yaml:"hasBio,omitempty"`
+	HasLocation       bool   `json:"has_location,omitempty" yaml:"hasLocation,omitempty"`
+	HasWebsite        bool   `json:"has_website,omitempty" yaml:"hasWebsite,omitempty"`
+	PRsMerged         int64  `json:"prs_merged,omitempty" yaml:"prsMerged,omitempty"`
+	PRsClosed         int64  `json:"prs_closed,omitempty" yaml:"prsClosed,omitempty"`
+	RecentPRRepoCount int64  `json:"recent_pr_repo_count,omitempty" yaml:"recentPRRepoCount,omitempty"`
+	ForkedRepos       int64  `json:"forked_repos,omitempty" yaml:"forkedRepos,omitempty"`
 }

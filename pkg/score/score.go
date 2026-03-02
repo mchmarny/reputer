@@ -7,21 +7,17 @@ import (
 )
 
 // ModelVersion is the current scoring model version.
-const ModelVersion = "3.0.0"
+const ModelVersion = "2.0.0"
 
 const (
 	// Category weights (sum to 1.0).
-	provenanceWeight  = 0.30
-	ageWeight         = 0.10
-	associationWeight = 0.05
-	profileWeight     = 0.05
-	proportionWeight  = 0.10
-	recencyWeight     = 0.05
-	prAcceptWeight    = 0.05
-	followerWeight    = 0.05
-	repoCountWeight   = 0.05
-	burstWeight       = 0.10
-	forkOnlyWeight    = 0.10
+	provenanceWeight = 0.35
+	ageWeight        = 0.15
+	orgMemberWeight  = 0.10
+	proportionWeight = 0.15
+	recencyWeight    = 0.10
+	followerWeight   = 0.10
+	repoCountWeight  = 0.05
 
 	// Ceilings and parameters.
 	ageCeilDays           = 730
@@ -34,18 +30,14 @@ const (
 	minConfidenceCommits  = 30
 	confCommitsPerContrib = 10
 	noTFAMaxDiscount      = 0.5
-	prCountCeil           = 20.0
-	burstCeil             = 5.0
-	forkOriginalCeil      = 5.0
 )
 
 // Exported category weights derived from signal constants above.
 var (
 	CategoryProvenanceWeight = provenanceWeight
-	CategoryIdentityWeight   = ageWeight + associationWeight + profileWeight
-	CategoryEngagementWeight = proportionWeight + recencyWeight + prAcceptWeight
+	CategoryIdentityWeight   = ageWeight + orgMemberWeight
+	CategoryEngagementWeight = proportionWeight + recencyWeight
 	CategoryCommunityWeight  = followerWeight + repoCountWeight
-	CategoryBehavioralWeight = burstWeight + forkOnlyWeight
 )
 
 // CategoryWeight describes a scoring category and its weight.
@@ -69,17 +61,6 @@ type Signals struct {
 	Following         int64 // Following count (for ratio)
 	PublicRepos       int64 // Public repository count
 	PrivateRepos      int64 // Private repository count
-
-	// v3 signals
-	AuthorAssociation string // OWNER, MEMBER, COLLABORATOR, CONTRIBUTOR, FIRST_TIME_CONTRIBUTOR, NONE
-	HasBio            bool   // Profile has bio
-	HasCompany        bool   // Profile has company
-	HasLocation       bool   // Profile has location
-	HasWebsite        bool   // Profile has website/blog
-	PRsMerged         int64  // Global merged PR count
-	PRsClosed         int64  // Global closed-without-merge PR count
-	RecentPRRepoCount int64  // Distinct repos with PR events in last 90 days
-	ForkedRepos       int64  // Owned repos that are forks
 }
 
 // Categories returns the model's scoring categories with their weights.
@@ -89,11 +70,10 @@ func Categories() []CategoryWeight {
 		{Name: "identity", Weight: CategoryIdentityWeight},
 		{Name: "engagement", Weight: CategoryEngagementWeight},
 		{Name: "community", Weight: CategoryCommunityWeight},
-		{Name: "behavioral", Weight: CategoryBehavioralWeight},
 	}
 }
 
-// Compute returns a reputation score in [0.0, 1.0] using the v3 weighted model.
+// Compute returns a reputation score in [0.0, 1.0] using the v2 weighted model.
 func Compute(s Signals) float64 {
 	if s.Suspended {
 		slog.Debug("score - suspended")
@@ -102,7 +82,7 @@ func Compute(s Signals) float64 {
 
 	var rep float64
 
-	// --- Category 1: Code Provenance (0.30) ---
+	// --- Category 1: Code Provenance (0.35) ---
 	if s.Commits > 0 && s.TotalCommits > 0 {
 		verifiedRatio := float64(s.Commits-s.UnverifiedCommits) / float64(s.Commits)
 		proportion := float64(s.Commits) / float64(s.TotalCommits)
@@ -120,39 +100,22 @@ func Compute(s Signals) float64 {
 
 		rep += rawScore * provenanceWeight
 		slog.Debug(fmt.Sprintf("provenance: %.4f (verified=%.2f, multiplier=%.2f)",
-			rawScore*provenanceWeight, verifiedRatio, securityMultiplier))
+			rep, verifiedRatio, securityMultiplier))
 	} else if s.StrongAuth {
 		rep += provenanceFloor * provenanceWeight
-		slog.Debug(fmt.Sprintf("provenance: %.4f (2FA floor, no commits)", provenanceFloor*provenanceWeight))
+		slog.Debug(fmt.Sprintf("provenance: %.4f (2FA floor, no commits)", rep))
 	}
 
-	// --- Category 2: Identity (0.20) ---
-	ageScore := logCurve(float64(s.AgeDays), ageCeilDays) * ageWeight
-	rep += ageScore
-	slog.Debug(fmt.Sprintf("age: %.4f (%d days)", ageScore, s.AgeDays))
+	// --- Category 2: Identity Authenticity (0.25) ---
+	rep += logCurve(float64(s.AgeDays), ageCeilDays) * ageWeight
+	slog.Debug(fmt.Sprintf("age: %.4f (%d days)", rep, s.AgeDays))
 
-	assocScore := associationScore(s.AuthorAssociation, s.OrgMember) * associationWeight
-	rep += assocScore
-	slog.Debug(fmt.Sprintf("association: %.4f (%s)", assocScore, s.AuthorAssociation))
+	if s.OrgMember {
+		rep += orgMemberWeight
+	}
+	slog.Debug(fmt.Sprintf("org: %.4f (member=%v)", rep, s.OrgMember))
 
-	profileCount := 0
-	if s.HasBio {
-		profileCount++
-	}
-	if s.HasCompany {
-		profileCount++
-	}
-	if s.HasLocation {
-		profileCount++
-	}
-	if s.HasWebsite {
-		profileCount++
-	}
-	profScore := float64(profileCount) / 4.0 * profileWeight
-	rep += profScore
-	slog.Debug(fmt.Sprintf("profile: %.4f (%d/4 fields)", profScore, profileCount))
-
-	// --- Category 3: Engagement (0.20) ---
+	// --- Category 3: Engagement Depth (0.25) ---
 	if s.Commits > 0 && s.TotalCommits > 0 {
 		proportion := float64(s.Commits) / float64(s.TotalCommits)
 		propCeil := math.Max(1.0/float64(max(s.TotalContributors, 1)), minProportionCeil)
@@ -163,10 +126,9 @@ func Compute(s Signals) float64 {
 		))
 		confidence := math.Min(float64(s.TotalCommits)/confThreshold, 1.0)
 
-		propScore := clampedRatio(proportion, propCeil) * confidence * proportionWeight
-		rep += propScore
+		rep += clampedRatio(proportion, propCeil) * confidence * proportionWeight
 		slog.Debug(fmt.Sprintf("proportion: %.4f (prop=%.3f, ceil=%.3f, conf=%.3f)",
-			propScore, proportion, propCeil, confidence))
+			rep, proportion, propCeil, confidence))
 	}
 
 	numContrib := max(s.TotalContributors, 1)
@@ -175,81 +137,24 @@ func Compute(s Signals) float64 {
 		halfLifeMult = 1.0
 	}
 	halfLife := baseHalfLifeDays * halfLifeMult
-	recScore := expDecay(float64(s.LastCommitDays), halfLife) * recencyWeight
-	rep += recScore
+	rep += expDecay(float64(s.LastCommitDays), halfLife) * recencyWeight
 	slog.Debug(fmt.Sprintf("recency: %.4f (%d days, halfLife=%.1f)",
-		recScore, s.LastCommitDays, halfLife))
+		rep, s.LastCommitDays, halfLife))
 
-	totalTerminalPRs := s.PRsMerged + s.PRsClosed
-	if totalTerminalPRs > 0 {
-		mergeRate := float64(s.PRsMerged) / float64(totalTerminalPRs)
-		confidence := logCurve(float64(totalTerminalPRs), prCountCeil)
-		prScore := mergeRate * confidence * prAcceptWeight
-		rep += prScore
-		slog.Debug(fmt.Sprintf("pr_acceptance: %.4f (rate=%.2f, conf=%.2f)",
-			prScore, mergeRate, confidence))
-	}
-
-	// --- Category 4: Community (0.10) ---
+	// --- Category 4: Community Standing (0.15) ---
 	if s.Following > 0 {
 		ratio := float64(s.Followers) / float64(s.Following)
 		rep += logCurve(ratio, followerRatioCeil) * followerWeight
-		slog.Debug(fmt.Sprintf("followers: %.4f (ratio=%.2f)",
-			logCurve(ratio, followerRatioCeil)*followerWeight, ratio))
+		slog.Debug(fmt.Sprintf("followers: %.4f (ratio=%.2f)", rep, ratio))
 	}
 
 	totalRepos := float64(s.PublicRepos + s.PrivateRepos)
 	rep += logCurve(totalRepos, repoCountCeil) * repoCountWeight
-	slog.Debug(fmt.Sprintf("repos: %.4f (%d combined)",
-		logCurve(totalRepos, repoCountCeil)*repoCountWeight, int64(totalRepos)))
-
-	// --- Category 5: Behavioral (0.20) ---
-	if s.RecentPRRepoCount > 0 && s.AgeDays > 0 {
-		ageMonths := math.Max(float64(s.AgeDays)/30.0, 1.0)
-		burstRate := float64(s.RecentPRRepoCount) / ageMonths
-		bScore := (1.0 - clampedRatio(burstRate, burstCeil)) * burstWeight
-		rep += bScore
-		slog.Debug(fmt.Sprintf("burst: %.4f (rate=%.2f, repos=%d)",
-			bScore, burstRate, s.RecentPRRepoCount))
-	} else {
-		rep += burstWeight
-		slog.Debug(fmt.Sprintf("burst: %.4f (no recent PR repos)", burstWeight))
-	}
-
-	totalOwnedRepos := s.PublicRepos + s.PrivateRepos
-	if totalOwnedRepos > 0 {
-		originalRepos := float64(totalOwnedRepos - s.ForkedRepos)
-		fScore := clampedRatio(originalRepos, forkOriginalCeil) * forkOnlyWeight
-		rep += fScore
-		slog.Debug(fmt.Sprintf("fork_ratio: %.4f (original=%.0f, forked=%d)",
-			fScore, originalRepos, s.ForkedRepos))
-	}
+	slog.Debug(fmt.Sprintf("repos: %.4f (%d combined)", rep, int64(totalRepos)))
 
 	result := toFixed(rep, 2)
 	slog.Debug(fmt.Sprintf("reputation: %.2f", result))
 	return result
-}
-
-// associationScore maps GitHub's author_association to a [0, 1] score.
-// Falls back to OrgMember boolean when association is empty.
-func associationScore(assoc string, orgMember bool) float64 {
-	switch assoc {
-	case "OWNER", "MEMBER":
-		return 1.0
-	case "COLLABORATOR":
-		return 0.8
-	case "CONTRIBUTOR":
-		return 0.5
-	case "FIRST_TIME_CONTRIBUTOR":
-		return 0.2
-	case "NONE":
-		return 0.0
-	default:
-		if orgMember {
-			return 1.0
-		}
-		return 0.0
-	}
 }
 
 // clampedRatio maps val linearly into [0.0, 1.0] with ceil as the saturation point.

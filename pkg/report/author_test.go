@@ -26,3 +26,15 @@ func TestAuthorString(t *testing.T) {
 	s := a.String()
 	assert.Contains(t, s, "user1")
 }
+
+func TestMakeAuthorHasV3StatsFields(t *testing.T) {
+	a := MakeAuthor("test")
+	assert.Empty(t, a.Stats.AuthorAssociation)
+	assert.False(t, a.Stats.HasBio)
+	assert.False(t, a.Stats.HasLocation)
+	assert.False(t, a.Stats.HasWebsite)
+	assert.Zero(t, a.Stats.PRsMerged)
+	assert.Zero(t, a.Stats.PRsClosed)
+	assert.Zero(t, a.Stats.RecentPRRepoCount)
+	assert.Zero(t, a.Stats.ForkedRepos)
+}
