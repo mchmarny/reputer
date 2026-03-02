@@ -5,7 +5,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/mchmarny/reputer.svg)](https://pkg.go.dev/github.com/mchmarny/reputer)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-CLI tool that calculates contributor reputation scores from Git provider APIs. Currently supported providers: **GitHub** and **GitLab**.
+CLI tool that calculates contributor reputation scores from Git provider APIs. Currently supported provider: **GitHub**.
 
 Reputation is a value between `0` (no/low reputation) and `1.0` (high reputation). The scoring model uses only provider-sourced signals, so the score is best understood as an identity confidence indicator.
 
