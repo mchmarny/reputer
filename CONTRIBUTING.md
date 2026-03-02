@@ -1,6 +1,6 @@
 # Contributing to reputer
 
-Thank you for your interest in contributing to reputer! We welcome contributions from developers of all backgrounds and experience levels.
+Thank you for your interest in contributing to reputer! Contributions from developers of all backgrounds and experience levels are welcome.
 
 ## Table of Contents
 
