@@ -7,8 +7,8 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/stretchr/testify v1.11.1
 	gitlab.com/gitlab-org/api/client-go v1.46.0
-	golang.org/x/oauth2 v0.35.0
-	golang.org/x/sync v0.20.0
+	golang.org/x/oauth2 v0.36.0
+	golang.org/x/sync v0.19.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
