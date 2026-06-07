@@ -1,210 +1,34 @@
 # reputer
 
-[![Build Status](https://github.com/mchmarny/reputer/actions/workflows/on-push.yaml/badge.svg)](https://github.com/mchmarny/reputer/actions/workflows/on-push.yaml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mchmarny/reputer)](https://goreportcard.com/report/github.com/mchmarny/reputer)
-[![Go Reference](https://pkg.go.dev/badge/github.com/mchmarny/reputer.svg)](https://pkg.go.dev/github.com/mchmarny/reputer)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-CLI tool that calculates contributor reputation scores from Git provider APIs. Currently supported provider: **GitHub**.
+> **This project is archived.** Active development has moved to **[DevTrace](https://devtrace.thingz.io/)** — a hosted service that builds on the ideas explored in `reputer` and goes much further.
 
-Reputation is a value between `0` (no/low reputation) and `1.0` (high reputation). The scoring model uses only provider-sourced signals, so the score is best understood as an identity confidence indicator.
+## Use DevTrace instead
 
-## Prerequisites
+[**DevTrace**](https://devtrace.thingz.io/) is a contributor trust scoring platform for open source. It's the spiritual successor to `reputer` — same core question ("can I trust this contributor?"), production-grade answer.
 
-A personal access token for the target provider:
+**What you get:**
 
-| Provider | Environment Variable | Required Scopes |
-|----------|---------------------|-----------------|
-| GitHub | `GITHUB_TOKEN` | `repo` (read) |
-| GitLab | `GITLAB_TOKEN` | `read_api` |
+- **23 signals across 5 weighted categories** produce a transparent trust score and letter grade for any GitHub contributor
+- **AI risk narratives** explain *why* a contributor was flagged — not just a raw number
+- **Behavioral analysis** detects burst-vanish patterns, velocity anomalies, and synthetic profiles
+- **Bot & AI-generated contribution detection** as distinct signals
+- **License footprint** across a contributor's repos
+- **GitHub Action** that gates PR merges on contributor trust
+- **REST API** for embedding scores into internal systems
+- **Compliance mapping** to 8 of 20 NIST SSDF practices
 
-## Install
+**It's free.** The Free plan covers contributor scoring, 30-day history, and 60 req/hour. During beta, the **Pro plan is also free** — AI risk summaries, 365-day history, 1000 req/hour, 10 API keys, and SSDF + EU CRA compliance reports.
 
-Homebrew:
+Get started: **[devtrace.thingz.io](https://devtrace.thingz.io/)** — GitHub login + one-click app install.
 
-```shell
-brew tap mchmarny/tap
-brew install reputer
-```
+## About this repository
 
-Go:
+`reputer` was a CLI tool that calculated contributor reputation scores using a v3 risk-weighted categorical model. It pioneered the scoring approach now used in DevTrace, but is no longer maintained. The code remains here for reference under the [Apache 2.0 License](LICENSE).
 
-```shell
-go install github.com/mchmarny/reputer/cmd/reputer@latest
-```
-
-Or download a binary from the [releases](https://github.com/mchmarny/reputer/releases) page.
-
-## Usage
-
-```shell
-reputer [flags]
-```
-
-| Flag | Description |
-|------|-------------|
-| `--repo` | Repo URI (required, e.g. `github.com/owner/repo`) |
-| `--commit` | Commit at which to end the report (optional, inclusive) |
-| `--stats` | Include stats used to calculate reputation (optional) |
-| `--file` | Write output to file at this path (optional, stdout if not specified) |
-| `--format` | Output format: `json` or `yaml` (optional, default: `json`) |
-| `--trusted-orgs` | Org whose members get a scoring boost (repeatable, optional) |
-| `--debug` | Turn on verbose logging (optional) |
-| `--version` | Print version only (optional) |
-
-Example:
-
-```shell
-export GITHUB_TOKEN=ghp_...
-reputer --repo github.com/mchmarny/reputer
-```
-
-Output:
-
-```json
-{
-  "repo": "github.com/mchmarny/reputer",
-  "at_commit": "",
-  "generated_on": "2025-06-10T14:49:19Z",
-  "total_commits": 338,
-  "total_contributors": 4,
-  "meta": {
-    "model_version": "3.2.0",
-    "categories": [
-      { "name": "code_provenance", "weight": 0.15 },
-      { "name": "identity", "weight": 0.25 },
-      { "name": "engagement", "weight": 0.25 },
-      { "name": "community", "weight": 0.15 },
-      { "name": "behavioral", "weight": 0.2 }
-    ]
-  },
-  "contributors": [
-    {
-      "username": "mchmarny",
-      "reputation": 1.0
-    }
-  ]
-}
-```
-
-With `--stats`:
-
-```json
-{
-  "contributors": [
-    {
-      "username": "mchmarny",
-      "reputation": 1.0,
-      "context": {
-        "created": "2010-01-04T00:19:57Z",
-        "name": "Mark Chmarny",
-        "company": "@Company"
-      },
-      "stats": {
-        "verified_commits": true,
-        "age_days": 5640,
-        "commits": 282,
-        "unverified_commits": 0,
-        "public_repos": 149,
-        "followers": 231,
-        "following": 8,
-        "last_commit_days": 3,
-        "org_member": true,
-        "author_association": "MEMBER",
-        "has_bio": true,
-        "has_company": true,
-        "has_location": true,
-        "has_website": true,
-        "prs_merged": 85,
-        "prs_closed": 3,
-        "recent_pr_repo_count": 2,
-        "forked_repos": 1
-      }
-    }
-  ]
-}
-```
-
-## Scoring
-
-Reputation is calculated using a **v3 risk-weighted categorical model** (model version `3.2.0`). Signals are grouped into five categories ranked by threat-model priority. Suspended users always score `0`.
-
-### Categories
-
-| Category | Weight | Signals |
-|----------|--------|---------|
-| Code Provenance | 0.15 | Verification ratio × maturity factor |
-| Identity | 0.25 | Account age, author association, profile completeness |
-| Engagement | 0.25 | Commit proportion, recency, PR acceptance rate |
-| Community | 0.15 | Follower/following ratio, repository count |
-| Behavioral | 0.20 | Cross-repo burst detection, fork-only ratio |
-
-### Signals
-
-| Signal | Weight | Ceiling / Curve | Details |
-|--------|--------|-----------------|---------|
-| Commit verification | 0.15 | ratio × maturity | Verification ratio scaled by account-age maturity (log curve, 730-day ceiling) |
-| Account age | 0.15 | 730 days, log curve | Diminishing returns — early days matter more |
-| Author association | 0.05 | enum mapping | OWNER/MEMBER→1.0, COLLABORATOR→0.8, CONTRIBUTOR→0.5, FIRST_TIME→0.2, NONE→0.0. Falls back to org membership. Trusted org members are floored at COLLABORATOR (0.8). |
-| Profile completeness | 0.05 | 4 fields, linear | Bio, company, location, website — count of filled fields / 4 |
-| Commit proportion | 0.15 | adaptive ceiling | Scaled by repo confidence (min 30 commits) |
-| Recency | 0.05 | exponential decay | Base half-life of 90 days, adjusted by contributor count |
-| PR acceptance rate | 0.05 | 20 PRs, log curve | `merged / (merged + closed)` with confidence scaling |
-| Follower ratio | 0.05 | 10:1 ratio, log curve | `followers / following`; skipped if following is 0 |
-| Repository count | 0.10 | 30 repos, log curve | Public repositories |
-| Cross-repo burst | 0.10 | 5.0 rate ceiling | Penalty for high PR activity across many repos relative to account age |
-| Fork-only ratio | 0.10 | 5 original repos | Accounts with only forked repos and no original work score 0 |
-
-## GitHub Action
-
-A composite action that posts contributor reputation scores on pull requests.
-
-### Caller example
-
-Add this to your repo at `.github/workflows/reputation.yaml`:
-
-```yaml
-name: reputation
-on:
-  pull_request:
-    types: [opened, synchronize]
-permissions:
-  pull-requests: write
-  contents: read
-jobs:
-  score:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: mchmarny/reputer@main
-```
-
-### Inputs
-
-| Input | Type | Default | Description |
-|-------|------|---------|-------------|
-| `reputer-version` | string | `latest` | Reputer release version to install (e.g. `v0.2.4`) |
-| `score-green` | string | `70` | Score >= this shows green |
-| `score-yellow` | string | `40` | Score >= this (but < green) shows yellow; below shows red |
-| `trusted-orgs` | string | `` | Org names whose members get a scoring boost (one per line or comma-separated) |
-
-The caller's `permissions` block grants `pull-requests: write` and `contents: read` to the automatic `GITHUB_TOKEN`. No additional secrets are needed.
-
-> **Rate limits:** The default `GITHUB_TOKEN` allows 1,000 API requests/hour. Each contributor requires ~8+ API calls (more with `trusted-orgs`). For repos with many contributors, use a Personal Access Token (5,000 requests/hour) by passing it via the `github-token` input and storing it as a repository secret.
-
-### Behavior
-
-1. Installs reputer (pinned version or latest release, with checksum verification)
-2. Runs reputer against the calling repository
-3. Posts a **Contributor Reputation** comment with the PR author's v3 score and stats
-
-## Contributing
-
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [DEVELOPMENT.md](DEVELOPMENT.md) for development setup.
+If you have an existing dependency on the CLI, releases remain available on the [releases](https://github.com/mchmarny/reputer/releases) page, but you should migrate to DevTrace for ongoing updates, additional signals, and a maintained GitHub Action.
 
 ## License
 
 [Apache License 2.0](LICENSE)
-
-## Disclaimer
-
-This is my personal project and it does not represent my employer. While I do my best to ensure that everything works, I take no responsibility for issues caused by this code.
